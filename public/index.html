@@ -51,36 +51,18 @@
 </head>
 
 <body>
-    <div class="container">
-        <h1>Visualisation D3.js</h1>
-        <div id="viz"></div>
-        <div class="controls">
-            <button onclick="updateChart()">Nouvelles données</button>
-            <button onclick="resetChart()">Réinitialiser</button>
+    <div id="dashboard-container">
+        <!-- Le dashboard sera créé dynamiquement par JavaScript -->
+        <div style="text-align: center; padding: 50px; color: #666;">
+            <h2>🔄 Chargement du dashboard...</h2>
+            <p>Veuillez patienter pendant le chargement des données Spotify.</p>
         </div>
     </div>
+
     <script src="index.js"></script>
     <script>
-        const viz = new Visualization('viz', 600, 400);
-        function updateChart() {
-            const newData = [
-                { name: 'X', value: Math.random() * 100 },
-                { name: 'Y', value: Math.random() * 100 },
-                { name: 'Z', value: Math.random() * 100 },
-                { name: 'W', value: Math.random() * 100 }
-            ];
-            viz.updateData(newData);
-        }
-        function resetChart() {
-            const originalData = [
-                { name: 'A', value: 30 },
-                { name: 'B', value: 80 },
-                { name: 'C', value: 45 },
-                { name: 'D', value: 60 },
-                { name: 'E', value: 20 }
-            ];
-            viz.updateData(originalData);
-        }
+        // Le dashboard se lance automatiquement via index.js
+        console.log('🎵 Application Spotify Dashboard en cours de chargement...');
     </script>
 </body>
 

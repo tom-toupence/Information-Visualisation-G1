@@ -1,0 +1,87 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Projet D3.js avec TypeScript</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        #viz {
+            border: 1px solid #ddd;
+            display: inline-block;
+            background: white;
+            border-radius: 4px;
+            margin: 20px 0;
+        }
+
+        .controls {
+            margin: 20px 0;
+        }
+
+        button {
+            padding: 10px 15px;
+            margin: 5px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Visualisation D3.js</h1>
+        <div id="viz"></div>
+        <div class="controls">
+            <button onclick="updateChart()">Nouvelles données</button>
+            <button onclick="resetChart()">Réinitialiser</button>
+        </div>
+    </div>
+    <script src="index.js"></script>
+    <script>
+        const viz = new Visualization('viz', 600, 400);
+        function updateChart() {
+            const newData = [
+                { name: 'X', value: Math.random() * 100 },
+                { name: 'Y', value: Math.random() * 100 },
+                { name: 'Z', value: Math.random() * 100 },
+                { name: 'W', value: Math.random() * 100 }
+            ];
+            viz.updateData(newData);
+        }
+        function resetChart() {
+            const originalData = [
+                { name: 'A', value: 30 },
+                { name: 'B', value: 80 },
+                { name: 'C', value: 45 },
+                { name: 'D', value: 60 },
+                { name: 'E', value: 20 }
+            ];
+            viz.updateData(originalData);
+        }
+    </script>
+</body>
+
+</html>

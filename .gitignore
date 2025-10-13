@@ -8,3 +8,6 @@ dist/
 .env.test.local
 .env.production.local
 public/spotify_data.csv
+.venv
+public/music_genres_tree.json
+public/indexByGenreSongs.json

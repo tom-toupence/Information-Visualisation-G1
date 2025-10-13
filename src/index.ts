@@ -33,6 +33,7 @@ if (typeof window !== 'undefined') {
 
 export { Dashboard } from './dashboard/Dashboard';
 export { DataLoader } from './data/DataLoader';
+export { ScatterProcessor } from './data/ScatterProcessor';
 export { BaseChart, GenreBarChart } from './charts/BaseChart';
 export * from './types';
 export * from './utils';

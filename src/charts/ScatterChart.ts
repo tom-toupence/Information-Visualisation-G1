@@ -1,109 +1,178 @@
-import * as d3 from "d3";
+import * as d3 from 'd3';
+import { MappedScatterData } from '../mappers/ScatterMapper';
 
-export type ScatterRow = {
-  danceability: number;
-  energy: number;
-  popularity: number;
-  year: number;
-  [k: string]: any;
-};
+export class ScatterVisualizer {
+    private svg: d3.Selection<SVGSVGElement, unknown, HTMLElement, any>;
+    private width: number;
+    private height: number;
+    private margin = { top: 20, right: 20, bottom: 40, left: 40 };
 
-type InitOpts = {
-  width?: number;
-  height?: number;
-  margin?: { top: number; right: number; bottom: number; left: number };
-};
+    constructor(containerId: string, width: number = 800, height: number = 600) {
+        this.width = width - this.margin.left - this.margin.right;
+        this.height = height - this.margin.top - this.margin.bottom;
 
-export function initScatter(
-  container: HTMLElement,
-  data: ScatterRow[],
-  opts: InitOpts = {}
-) {
-  const margin = opts.margin ?? { top: 20, right: 20, bottom: 44, left: 56 };
-  const width = opts.width ?? 860;
-  const height = opts.height ?? 560;
-  const innerW = width - margin.left - margin.right;
-  const innerH = height - margin.top - margin.bottom;
-
-  const x = d3.scaleLinear().domain([0, 1]).nice().range([0, innerW]);
-  const y = d3.scaleLinear().domain([0, 1]).nice().range([innerH, 0]);
-  const r = d3.scaleSqrt<number, number>().range([1.5, 8]);
-  const color = d3.scaleSequential(d3.interpolatePlasma);
-
-  const svg = d3.select(container).append("svg").attr("width", width).attr("height", height);
-  const g = svg.append("g").attr("transform", `translate(${margin.left},${margin.top})`);
-
-  g.append("clipPath").attr("id", "clip").append("rect").attr("width", innerW).attr("height", innerH);
-
-  g.append("g").attr("transform", `translate(0,${innerH})`)
-    .call(d3.axisBottom(x).ticks(10))
-    .append("text").attr("x", innerW).attr("y", 34).attr("text-anchor", "end").attr("fill", "currentColor").text("Danceability");
-
-  g.append("g")
-    .call(d3.axisLeft(y).ticks(10))
-    .append("text").attr("transform", "rotate(-90)").attr("x", -10).attr("y", -44).attr("text-anchor", "end").attr("fill", "currentColor").text("Energy");
-
-  const dotsLayer = g.append("g").attr("clip-path", "url(#clip)");
-
-  const brush = d3.brush().extent([[0, 0], [innerW, innerH]]).on("start brush end", brushed);
-  const brushLayer = g.append("g").attr("class", "brush").attr("clip-path", "url(#clip)").call(brush as any);
-
-  const selCountEl = document.getElementById("sel-count")!;
-  const resetBtn = document.getElementById("reset")!;
-
-  function brushed(event: d3.D3BrushEvent<unknown>) {
-    const s = event.selection as [[number, number], [number, number]] | null;
-    let count = 0;
-    const circles = dotsLayer.selectAll<SVGCircleElement, ScatterRow>("circle");
-    if (s) {
-      const [[x0, y0], [x1, y1]] = s;
-      circles.classed("selected", function (d) {
-        const cx = x(d.danceability), cy = y(d.energy);
-        const sel = x0 <= cx && cx <= x1 && y0 <= cy && cy <= y1;
-        if (sel) count++;
-        return sel;
-      });
-    } else {
-      circles.classed("selected", false);
+        // Créer le SVG
+        this.svg = d3.select(`#${containerId}`)
+            .append('svg')
+            .attr('width', width)
+            .attr('height', height);
     }
-    selCountEl.textContent = String(count);
-  }
 
-  function render(points: ScatterRow[]) {
-    const extent = d3.extent(points, d => d.popularity) as [number, number];
-    const lo = Number.isFinite(extent[0]) ? extent[0] : 0;
-    const hi = Number.isFinite(extent[1]) ? extent[1] : 1;
-    r.domain([lo, hi]);
-    color.domain([hi, lo]); // reverse
+    /**
+     * Visualise les données scatter
+     */
+    visualize(data: MappedScatterData[]): void {
+        // Nettoyer le SVG
+        this.svg.selectAll('*').remove();
 
-    const dots = dotsLayer.selectAll<SVGCircleElement, ScatterRow>("circle")
-      .data(points, (d: any) => d.id ?? `${d.danceability}-${d.energy}-${d.popularity}-${d.year}`);
+        // Créer le groupe principal
+        const g = this.svg.append('g')
+            .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
 
-    const enter = dots.enter().append("circle")
-      .attr("class", "dot")
-      .attr("cx", d => x(d.danceability))
-      .attr("cy", d => y(d.energy))
-      .attr("r", 0)
-      .attr("fill", d => color(d.popularity))
-      .call(sel => sel.transition().duration(250).attr("r", d => r(d.popularity)));
+        // Créer les échelles
+        const xScale = d3.scaleLinear()
+            .domain([0, 100])
+            .range([0, this.width]);
 
-    enter.append("title")
-      .text(d => `year: ${d.year}\ndanceability: ${d.danceability}\nenergy: ${d.energy}\npopularity: ${d.popularity}`);
+        const yScale = d3.scaleLinear()
+            .domain([0, 100])
+            .range([this.height, 0]);
 
-    dots.transition().duration(200)
-      .attr("cx", d => x(d.danceability))
-      .attr("cy", d => y(d.energy))
-      .attr("r", d => r(d.popularity))
-      .attr("fill", d => color(d.popularity));
+        // Créer les axes
+        const xAxis = d3.axisBottom(xScale);
+        const yAxis = d3.axisLeft(yScale);
 
-    dots.exit().transition().duration(150).attr("r", 0).remove();
+        // Ajouter l'axe X
+        g.append('g')
+            .attr('transform', `translate(0,${this.height})`)
+            .call(xAxis);
 
-    (brushLayer as any).call(brush.move, null);
-    selCountEl.textContent = "0";
-  }
+        // Ajouter l'axe Y
+        g.append('g')
+            .call(yAxis);
 
-  resetBtn.addEventListener("click", () => (brushLayer as any).call(brush.move, null));
-  svg.on("dblclick", () => (brushLayer as any).call(brush.move, null));
+        // Labels des axes
+        g.append('text')
+            .attr('transform', `translate(${this.width / 2}, ${this.height + 35})`)
+            .style('text-anchor', 'middle')
+            .text('Danceability (%)');
 
-  return { render }; // retourne une API simple
+        g.append('text')
+            .attr('transform', 'rotate(-90)')
+            .attr('y', 0 - this.margin.left)
+            .attr('x', 0 - (this.height / 2))
+            .attr('dy', '1em')
+            .style('text-anchor', 'middle')
+            .text('Energy (%)');
+
+        // Créer les cercles
+        const circles = g.selectAll('.scatter-dot')
+            .data(data)
+            .enter()
+            .append('circle')
+            .attr('class', 'scatter-dot')
+            .attr('cx', d => xScale(d.x))
+            .attr('cy', d => yScale(d.y))
+            .attr('r', d => d.size)
+            .attr('fill', d => d.color)
+            .attr('opacity', 0.7)
+            .attr('stroke', '#fff')
+            .attr('stroke-width', 1);
+
+        // Ajouter l'interactivité
+        this.addInteractivity(circles);
+
+        console.log(`📊 Visualisation créée avec ${data.length} points`);
+    }
+
+    /**
+     * Ajoute l'interactivité (hover, tooltip)
+     */
+    private addInteractivity(circles: d3.Selection<SVGCircleElement, MappedScatterData, SVGGElement, unknown>): void {
+        // Créer le tooltip
+        const tooltip = d3.select('body').append('div')
+            .attr('class', 'scatter-tooltip')
+            .style('position', 'absolute')
+            .style('background', 'rgba(0, 0, 0, 0.8)')
+            .style('color', 'white')
+            .style('padding', '8px')
+            .style('border-radius', '4px')
+            .style('font-size', '12px')
+            .style('pointer-events', 'none')
+            .style('opacity', 0);
+
+        circles
+            .on('mouseover', (event, d) => {
+                // Agrandir le cercle
+                d3.select(event.currentTarget)
+                    .transition()
+                    .duration(100)
+                    .attr('r', d.size * 1.5)
+                    .attr('opacity', 1);
+
+                // Afficher le tooltip
+                tooltip.transition()
+                    .duration(200)
+                    .style('opacity', 1);
+
+                tooltip.html(`
+                    <strong>${d.metadata.track_name}</strong><br/>
+                    ${d.metadata.artist_name}<br/>
+                    Genre: ${d.metadata.genre}<br/>
+                    Popularity: ${d.metadata.popularity}<br/>
+                    Danceability: ${(d.metadata.danceability * 100).toFixed(1)}%<br/>
+                    Energy: ${(d.metadata.energy * 100).toFixed(1)}%
+                `)
+                    .style('left', (event.pageX + 10) + 'px')
+                    .style('top', (event.pageY - 10) + 'px');
+            })
+            .on('mouseout', (event, d) => {
+                // Remettre la taille normale
+                d3.select(event.currentTarget)
+                    .transition()
+                    .duration(100)
+                    .attr('r', d.size)
+                    .attr('opacity', 0.7);
+
+                // Cacher le tooltip
+                tooltip.transition()
+                    .duration(500)
+                    .style('opacity', 0);
+            });
+    }
+
+    /**
+     * Ajoute une légende pour les genres
+     */
+    addLegend(data: MappedScatterData[]): void {
+        const genres = [...new Set(data.map(d => d.metadata.genre))];
+        const legendData = genres.map(genre => ({
+            genre,
+            color: data.find(d => d.metadata.genre === genre)?.color || '#999'
+        }));
+
+        const legend = this.svg.append('g')
+            .attr('class', 'legend')
+            .attr('transform', `translate(${this.width + this.margin.left - 150}, ${this.margin.top})`);
+
+        const legendItems = legend.selectAll('.legend-item')
+            .data(legendData.slice(0, 10)) // Limiter à 10 genres max
+            .enter()
+            .append('g')
+            .attr('class', 'legend-item')
+            .attr('transform', (d, i) => `translate(0, ${i * 20})`);
+
+        legendItems.append('circle')
+            .attr('cx', 0)
+            .attr('cy', 0)
+            .attr('r', 6)
+            .attr('fill', d => d.color);
+
+        legendItems.append('text')
+            .attr('x', 12)
+            .attr('y', 0)
+            .attr('dy', '0.35em')
+            .style('font-size', '12px')
+            .text(d => d.genre);
+    }
 }

@@ -100,8 +100,20 @@ export class ScatterProcessor {
                 return;
             }
 
-            // En environnement navigateur, on peut télécharger le fichier
-            this.downloadCSV(csvContent, filename);
+            // Détecter l'environnement
+            if (typeof window === 'undefined') {
+                // Environnement Node.js - Sauvegarder sur le disque
+                const fs = require('fs');
+                const path = require('path');
+                
+                // Sauvegarder dans le répertoire racine
+                const filePath = path.join(process.cwd(), filename);
+                fs.writeFileSync(filePath, csvContent, 'utf-8');
+                console.log(`💾 Fichier sauvegardé: ${filePath}`);
+            } else {
+                // Environnement navigateur - Télécharger le fichier
+                this.downloadCSV(csvContent, filename);
+            }
             
         } catch (error) {
             console.error('❌ Erreur lors de la sauvegarde du CSV:', error);

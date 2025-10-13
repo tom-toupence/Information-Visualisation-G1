@@ -52,6 +52,17 @@ export interface YearData {
     avgPopularity: number;
 }
 
+// Types pour les données scatter plot
+export interface ScatterData {
+    danceability: number;
+    popularity: number;
+    energy: number;
+    // Optionnels pour contexte
+    track_name?: string;
+    artist_name?: string;
+    genre?: string;
+}
+
 // Types pour les filtres
 export interface FilterOptions {
     genres?: string[];

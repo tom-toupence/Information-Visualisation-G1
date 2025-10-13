@@ -10,87 +10,48 @@ var __createBinding = (this && this.__createBinding) || (Object.create ? (functi
     if (k2 === undefined) k2 = k;
     o[k2] = m[k];
 }));
-var __setModuleDefault = (this && this.__setModuleDefault) || (Object.create ? (function(o, v) {
-    Object.defineProperty(o, "default", { enumerable: true, value: v });
-}) : function(o, v) {
-    o["default"] = v;
-});
-var __importStar = (this && this.__importStar) || (function () {
-    var ownKeys = function(o) {
-        ownKeys = Object.getOwnPropertyNames || function (o) {
-            var ar = [];
-            for (var k in o) if (Object.prototype.hasOwnProperty.call(o, k)) ar[ar.length] = k;
-            return ar;
-        };
-        return ownKeys(o);
-    };
-    return function (mod) {
-        if (mod && mod.__esModule) return mod;
-        var result = {};
-        if (mod != null) for (var k = ownKeys(mod), i = 0; i < k.length; i++) if (k[i] !== "default") __createBinding(result, mod, k[i]);
-        __setModuleDefault(result, mod);
-        return result;
-    };
-})();
+var __exportStar = (this && this.__exportStar) || function(m, exports) {
+    for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-const d3 = __importStar(require("d3"));
-class Visualization {
-    constructor(containerId, width = 400, height = 300) {
-        this.svg = d3.select(`#${containerId}`)
-            .append('svg')
-            .attr('width', width)
-            .attr('height', height);
-        this.data = [
-            { name: 'A', value: 30 },
-            { name: 'B', value: 80 },
-            { name: 'C', value: 45 },
-            { name: 'D', value: 60 },
-            { name: 'E', value: 20 }
-        ];
-        this.init();
+exports.GenreBarChart = exports.BaseChart = exports.DataLoader = exports.Dashboard = void 0;
+const Dashboard_1 = require("./dashboard/Dashboard");
+// Initialisation de l'application
+async function initApp() {
+    try {
+        console.log('🎵 Démarrage de l\'application Spotify Dashboard...');
+        const dashboard = new Dashboard_1.Dashboard();
+        await dashboard.init();
+        // Export global pour utilisation dans le navigateur
+        if (typeof window !== 'undefined') {
+            window.SpotifyDashboard = dashboard;
+        }
     }
-    init() {
-        this.createSimpleChart();
-    }
-    createSimpleChart() {
-        const margin = { top: 20, right: 30, bottom: 40, left: 40 };
-        const width = +this.svg.attr('width') - margin.left - margin.right;
-        const height = +this.svg.attr('height') - margin.top - margin.bottom;
-        const g = this.svg.append('g')
-            .attr('transform', `translate(${margin.left},${margin.top})`);
-        // Échelles
-        const xScale = d3.scaleBand()
-            .domain(this.data.map((d) => d.name))
-            .range([0, width])
-            .padding(0.1);
-        const yScale = d3.scaleLinear()
-            .domain([0, d3.max(this.data, (d) => d.value) || 0])
-            .range([height, 0]);
-        // Barres
-        g.selectAll('.bar')
-            .data(this.data)
-            .enter().append('rect')
-            .attr('class', 'bar')
-            .attr('x', (d) => xScale(d.name) || 0)
-            .attr('y', (d) => yScale(d.value))
-            .attr('width', xScale.bandwidth())
-            .attr('height', (d) => height - yScale(d.value))
-            .attr('fill', 'steelblue');
-        // Axes
-        g.append('g')
-            .attr('transform', `translate(0,${height})`)
-            .call(d3.axisBottom(xScale));
-        g.append('g')
-            .call(d3.axisLeft(yScale));
-    }
-    updateData(newData) {
-        this.data = newData;
-        this.svg.selectAll('*').remove();
-        this.init();
+    catch (error) {
+        console.error('❌ Erreur lors de l\'initialisation:', error);
     }
 }
+// Démarrage automatique lors du chargement
 if (typeof window !== 'undefined') {
-    window.Visualization = Visualization;
+    // Dans le navigateur
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initApp);
+    }
+    else {
+        initApp();
+    }
 }
-exports.default = Visualization;
+else {
+    // En Node.js
+    initApp();
+}
+var Dashboard_2 = require("./dashboard/Dashboard");
+Object.defineProperty(exports, "Dashboard", { enumerable: true, get: function () { return Dashboard_2.Dashboard; } });
+var DataLoader_1 = require("./data/DataLoader");
+Object.defineProperty(exports, "DataLoader", { enumerable: true, get: function () { return DataLoader_1.DataLoader; } });
+var BaseChart_1 = require("./charts/BaseChart");
+Object.defineProperty(exports, "BaseChart", { enumerable: true, get: function () { return BaseChart_1.BaseChart; } });
+Object.defineProperty(exports, "GenreBarChart", { enumerable: true, get: function () { return BaseChart_1.GenreBarChart; } });
+__exportStar(require("./types"), exports);
+__exportStar(require("./utils"), exports);
 //# sourceMappingURL=index.js.map

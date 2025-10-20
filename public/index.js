@@ -14,7 +14,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.GenreBarChart = exports.BaseChart = exports.ScatterProcessor = exports.DataLoader = exports.Dashboard = void 0;
+exports.GenreBarChart = exports.BaseChart = exports.DataLoader = exports.Dashboard = void 0;
 const Dashboard_1 = require("./dashboard/Dashboard");
 // Initialisation de l'application
 async function initApp() {
@@ -49,8 +49,6 @@ var Dashboard_2 = require("./dashboard/Dashboard");
 Object.defineProperty(exports, "Dashboard", { enumerable: true, get: function () { return Dashboard_2.Dashboard; } });
 var DataLoader_1 = require("./data/DataLoader");
 Object.defineProperty(exports, "DataLoader", { enumerable: true, get: function () { return DataLoader_1.DataLoader; } });
-var ScatterProcessor_1 = require("./data/ScatterProcessor");
-Object.defineProperty(exports, "ScatterProcessor", { enumerable: true, get: function () { return ScatterProcessor_1.ScatterProcessor; } });
 var BaseChart_1 = require("./charts/BaseChart");
 Object.defineProperty(exports, "BaseChart", { enumerable: true, get: function () { return BaseChart_1.BaseChart; } });
 Object.defineProperty(exports, "GenreBarChart", { enumerable: true, get: function () { return BaseChart_1.GenreBarChart; } });

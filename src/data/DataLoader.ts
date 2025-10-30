@@ -4,6 +4,8 @@ import { SpotifyTrack, GenreIndex, GenreTreeNode } from '../types';
 export class DataLoader {
     private cache: Map<string, any> = new Map();
     private static instance: DataLoader;
+    private readonly genreTreeFileName = 'indexByGenreSongs.json';
+
 
     static getInstance(): DataLoader {
         if (!DataLoader.instance) {
@@ -52,11 +54,11 @@ export class DataLoader {
 
         let enriched: any;
         if (typeof window !== 'undefined') {
-            enriched = await d3.json('indexByGenreSongs.json') as GenreTreeNode;
+            enriched = await d3.json(this.genreTreeFileName) as GenreTreeNode;
         } else {
             const fs = await import('fs');
             const path = await import('path');
-            const filePath = path.join(process.cwd(), 'public', 'indexByGenreSongs.json');
+            const filePath = path.join(process.cwd(), 'public', this.genreTreeFileName);
             const fileContent = fs.readFileSync(filePath, 'utf-8');
             enriched = JSON.parse(fileContent);
         }
@@ -150,7 +152,7 @@ export class DataLoader {
             return this.cache.get(cacheKey);
         }
 
-        const genreIndex = await d3.json('indexByGenreSongs.json') as GenreIndex;
+        const genreIndex = await d3.json(this.genreTreeFileName) as GenreIndex;
 
         if (!this.validateGenreIndex(genreIndex)) {
             throw new Error('Invalid data format for genre index');

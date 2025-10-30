@@ -1,11 +1,10 @@
 import * as d3 from 'd3';
-import { SpotifyTrack } from '../types';
+import { SpotifyTrack, GenreIndex, GenreTreeNode } from '../types';
 
 export class DataLoader {
     private cache: Map<string, any> = new Map();
     private static instance: DataLoader;
 
-    // Singleton pattern
     static getInstance(): DataLoader {
         if (!DataLoader.instance) {
             DataLoader.instance = new DataLoader();
@@ -13,37 +12,75 @@ export class DataLoader {
         return DataLoader.instance;
     }
 
-    // Chargement des données Spotify depuis CSV
     async loadSpotifyData(): Promise<SpotifyTrack[]> {
         const cacheKey = 'spotify_data';
 
-        // Vérifier le cache
         if (this.cache.has(cacheKey)) {
-            console.log('📦 Données chargées depuis le cache');
             return this.cache.get(cacheKey);
         }
 
-        try {
-            console.log('🔄 Chargement des données Spotify...');
+        const rawData = await d3.csv('spotify_data.csv');
+        const spotifyTracks = this.parseSpotifyData(rawData);
 
-            const rawData = await d3.csv('spotify_data.csv');
-            const spotifyTracks = this.parseSpotifyData(rawData);
-
-            // Mettre en cache
-            this.cache.set(cacheKey, spotifyTracks);
-
-            console.log(`✅ ${spotifyTracks.length} pistes chargées avec succès`);
-            return spotifyTracks;
-
-        } catch (error) {
-            console.error('❌ Erreur lors du chargement des données:', error);
-
-            // Retourner des données par défaut en cas d'erreur
-            return this.getDefaultData();
-        }
+        this.cache.set(cacheKey, spotifyTracks);
+        return spotifyTracks;
     }
 
-    // Parsing des données CSV vers SpotifyTrack
+    async loadGenreTree(): Promise<GenreTreeNode> {
+        const cacheKey = 'genre_tree';
+
+        if (this.cache.has(cacheKey)) {
+            return this.cache.get(cacheKey);
+        }
+
+        const tree = await d3.json('music_genres_tree.json') as GenreTreeNode;
+
+        if (!tree || typeof tree !== 'object' || typeof (tree as any).name !== 'string') {
+            throw new Error('Invalid data format for genre tree');
+        }
+
+        this.cache.set(cacheKey, tree);
+        return tree;
+    }
+
+    async loadGenreTreeWithSongs(): Promise<GenreTreeNode> {
+        const cacheKey = 'genre_tree_with_songs';
+
+        if (this.cache.has(cacheKey)) {
+            return this.cache.get(cacheKey);
+        }
+
+        let enriched: any;
+        if (typeof window !== 'undefined') {
+            enriched = await d3.json('indexByGenreSongs.json') as GenreTreeNode;
+        } else {
+            const fs = await import('fs');
+            const path = await import('path');
+            const filePath = path.join(process.cwd(), 'public', 'indexByGenreSongs.json');
+            const fileContent = fs.readFileSync(filePath, 'utf-8');
+            enriched = JSON.parse(fileContent);
+        }
+
+        if (!this.validateEnrichedTree(enriched)) {
+            throw new Error('Invalid data format for enriched genre tree');
+        }
+
+        this.cache.set(cacheKey, enriched);
+        return enriched;
+    }
+
+    private validateEnrichedTree(node: any): node is GenreTreeNode {
+        if (!node || typeof node !== 'object' || typeof node.name !== 'string') return false;
+        if (!Array.isArray(node.songs)) return false;
+        if (node.children) {
+            if (!Array.isArray(node.children)) return false;
+            for (const child of node.children) {
+                if (!this.validateEnrichedTree(child)) return false;
+            }
+        }
+        return true;
+    }
+
     private parseSpotifyData(rawData: any[]): SpotifyTrack[] {
         return rawData.map((row, index) => {
             try {
@@ -69,73 +106,16 @@ export class DataLoader {
                     time_signature: this.parseNumber(row.time_signature, 4)
                 };
             } catch (error) {
-                console.warn(`⚠️ Erreur parsing ligne ${index + 1}:`, error);
                 return null;
             }
         }).filter((track): track is SpotifyTrack => track !== null);
     }
 
-    // Helper pour parser les nombres avec fallback
     private parseNumber(value: any, defaultValue: number): number {
         const parsed = parseFloat(value);
         return isNaN(parsed) ? defaultValue : parsed;
     }
 
-    // Validation des données
-    private validateTrack(track: any): boolean {
-        const requiredFields = ['artist_name', 'track_name', 'popularity', 'year', 'genre'];
-        return requiredFields.every(field => track[field] !== undefined && track[field] !== '');
-    }
-
-    // Données par défaut pour développement/fallback
-    private getDefaultData(): SpotifyTrack[] {
-        return [
-            {
-                artist_name: "Jason Mraz",
-                track_name: "I Won't Give Up",
-                track_id: "53QF56cjZA9RTuuMZDrSA6",
-                popularity: 68,
-                year: 2012,
-                genre: "acoustic",
-                danceability: 0.483,
-                energy: 0.303,
-                key: 4,
-                loudness: -10.058,
-                mode: 1,
-                speechiness: 0.0429,
-                acousticness: 0.694,
-                instrumentalness: 0.0,
-                liveness: 0.115,
-                valence: 0.139,
-                tempo: 133.406,
-                duration_ms: 240166,
-                time_signature: 3
-            },
-            {
-                artist_name: "Ed Sheeran",
-                track_name: "Shape of You",
-                track_id: "7qiZfU4dY1lWllzX7mPBI3",
-                popularity: 93,
-                year: 2017,
-                genre: "pop",
-                danceability: 0.825,
-                energy: 0.652,
-                key: 1,
-                loudness: -3.183,
-                mode: 0,
-                speechiness: 0.0802,
-                acousticness: 0.581,
-                instrumentalness: 0.0,
-                liveness: 0.0931,
-                valence: 0.931,
-                tempo: 95.977,
-                duration_ms: 233713,
-                time_signature: 4
-            }
-        ];
-    }
-
-    // Méthodes utilitaires pour les tests
     generateRandomSpotifyData(count: number = 10): SpotifyTrack[] {
         const genres = ['pop', 'rock', 'hip-hop', 'acoustic', 'funk'];
         const artists = ['Artist A', 'Artist B', 'Artist C', 'Artist D', 'Artist E'];
@@ -163,9 +143,68 @@ export class DataLoader {
         }));
     }
 
-    // Nettoyage du cache
+    async loadGenreIndex(): Promise<GenreIndex> {
+        const cacheKey = 'genre_index';
+
+        if (this.cache.has(cacheKey)) {
+            return this.cache.get(cacheKey);
+        }
+
+        const genreIndex = await d3.json('indexByGenreSongs.json') as GenreIndex;
+
+        if (!this.validateGenreIndex(genreIndex)) {
+            throw new Error('Invalid data format for genre index');
+        }
+
+        this.cache.set(cacheKey, genreIndex);
+        return genreIndex;
+    }
+
+    private validateGenreIndex(genreIndex: any): genreIndex is GenreIndex {
+        if (!genreIndex || typeof genreIndex !== 'object') {
+            return false;
+        }
+
+        for (const [genre, songs] of Object.entries(genreIndex)) {
+            if (!Array.isArray(songs)) {
+                return false;
+            }
+
+            for (let i = 0; i < Math.min(3, songs.length); i++) {
+                const song = (songs as any[])[i];
+                if (!song || typeof song.track_name !== 'string' || typeof song.track_id !== 'string') {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    async getSongsByGenre(genre: string): Promise<{ track_name: string; track_id: string }[]> {
+        const genreIndex = await this.loadGenreIndex();
+        return genreIndex[genre] || [];
+    }
+
+    async getAvailableGenres(): Promise<string[]> {
+        const genreIndex = await this.loadGenreIndex();
+        return Object.keys(genreIndex).sort();
+    }
+
+    async getGenreIndexStats(): Promise<{ genreCount: number; totalSongs: number; avgSongsPerGenre: number }> {
+        const genreIndex = await this.loadGenreIndex();
+        const genreCount = Object.keys(genreIndex).length;
+        const totalSongs = Object.values(genreIndex).reduce((sum, songs) => sum + songs.length, 0);
+        const avgSongsPerGenre = genreCount > 0 ? Math.round(totalSongs / genreCount) : 0;
+
+        return {
+            genreCount,
+            totalSongs,
+            avgSongsPerGenre
+        };
+    }
+
     clearCache(): void {
         this.cache.clear();
-        console.log('🗑️ Cache vidé');
     }
 }

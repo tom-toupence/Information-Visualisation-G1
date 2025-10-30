@@ -52,10 +52,29 @@ export interface YearData {
     avgPopularity: number;
 }
 
-// Types pour les filtres
 export interface FilterOptions {
     genres?: string[];
     yearRange?: [number, number];
     popularityRange?: [number, number];
     energyRange?: [number, number];
+}
+
+export interface SongInfo {
+    track_name: string;
+    track_id: string;
+}
+
+export interface GenreIndex {
+    [genre: string]: SongInfo[];
+}
+
+export interface GenreTreeNode {
+    name: string;
+    children?: GenreTreeNode[];
+    songs?: SongInfo[];
+}
+
+export interface TreeVizResponse {
+    type: "genres" | "songs";
+    values: string[];
 }

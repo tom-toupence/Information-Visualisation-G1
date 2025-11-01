@@ -49,12 +49,12 @@
     <!-- Contenu principal -->
     <main class="chart-container">
         <div class="chart-wrapper">
-            <h2>Votre Chart Personnalisé</h2>
+            <h2>Explorateur de Genres Musicaux</h2>
             <div id="chart-area">
-                <!-- Le chart sera rendu ici -->
-                <div class="chart-placeholder">
-                    <i class="fa-solid fa-chart-pie fa-3x"></i>
-                    <p>Chart à développer</p>
+                <!-- La visualisation sera rendue ici -->
+                <div class="loading-placeholder">
+                    <i class="fa-solid fa-music fa-3x"></i>
+                    <p>Chargement de l'arbre des genres...</p>
                 </div>
             </div>
         </div>
@@ -70,13 +70,13 @@
             try {
                 // Créer une instance de TreeVisualization
                 const treeViz = new TreeVisualization();
-                
+
                 // Initialiser et charger les données (cela va afficher les enfants du premier niveau)
                 await treeViz.initialize();
-                
+
                 // Créer une visualisation basique dans le conteneur chart-area
                 treeViz.createVisualization('#chart-area');
-                
+
                 // Afficher quelques statistiques supplémentaires
                 const stats = treeViz.getTreeStatistics();
                 if (stats) {
@@ -86,7 +86,7 @@
                     console.log(`Profondeur maximale: ${stats.maxDepth}`);
                     console.log('===================================');
                 }
-                
+
             } catch (error) {
                 console.error('Erreur lors de l\'initialisation de TreeVisualization :', error);
             }

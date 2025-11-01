@@ -157,40 +157,86 @@ export class TreeVisualization {
             });
         }
 
-        // Vérifier s'il y a des enfants
-        if (!this.currentNode.children || this.currentNode.children.length === 0) {
+        // Préparer les données à afficher selon le type de nœud
+        const dataToShow = [];
+
+        // Si le nœud actuel a des enfants genres, afficher uniquement ces enfants
+        if (this.currentNode.children && this.currentNode.children.length > 0) {
+            const childrenGenres = this.currentNode.children.map(child => ({
+                ...child,
+                type: 'genre',
+                songCount: child.songs ? child.songs.length : 0,
+                childCount: child.children ? child.children.length : 0,
+                displayName: child.name
+            }));
+            dataToShow.push(...childrenGenres);
+        }
+        // Sinon, si c'est une feuille avec des chansons, afficher les chansons
+        else if (this.currentNode.songs && this.currentNode.songs.length > 0) {
+            const songs = this.currentNode.songs.slice(0, 10).map(song => ({
+                type: 'song',
+                name: song.track_name,
+                artist: song.artist_name || 'Artiste inconnu', // Gérer le cas où artist_name n'existe pas
+                displayName: song.artist_name ? `${song.artist_name} - ${song.track_name}` : song.track_name,
+                songCount: 1, // Une chanson = 1
+                childCount: 0,
+                songData: song
+            }));
+            dataToShow.push(...songs);
+        }
+
+        // Vérifier s'il y a des données à afficher
+        if (dataToShow.length === 0) {
             group.append('text')
                 .attr('x', width / 2)
                 .attr('y', height / 2)
                 .attr('text-anchor', 'middle')
                 .style('font-size', '16px')
                 .style('fill', '#666')
-                .text('Aucun sous-genre disponible');
+                .text('Aucun contenu disponible');
             return;
         }
 
-        // Données des enfants avec informations sur les chansons
-        const children = this.currentNode.children.map(child => ({
-            ...child,
-            songCount: child.songs ? child.songs.length : 0,
-            childCount: child.children ? child.children.length : 0
-        }));
+        // Utiliser les données combinées
+        const children = dataToShow;
 
-        // Calculer la taille des bulles basée sur le nombre de chansons (taille réduite)
-        const maxSongs = Math.max(...children.map(d => d.songCount), 1);
-        const radiusScale = d3.scaleSqrt()
-            .domain([0, maxSongs])
-            .range([15, 60]);
+        // Calculer la taille des bulles différemment selon le type
+        const maxSongs = Math.max(...children.filter(d => d.type === 'genre').map(d => d.songCount), 1);
 
-        // Couleurs pour les bulles
-        const colorScale = d3.scaleOrdinal(d3.schemeSet3);
+        const radiusScale = d3.scaleOrdinal()
+            .domain(['genre', 'song'])
+            .range([
+                d3.scaleSqrt().domain([0, maxSongs]).range([25, 70]), // Genres : plus grands
+                () => 50
+            ]);
+
+        // Fonction pour obtenir le rayon selon le type
+        const getRadius = (d) => {
+            if (d.type === 'genre') {
+                return radiusScale('genre')(d.songCount);
+            } else {
+                return radiusScale('song')();
+            }
+        };
+
+        // Couleurs différentes pour genres et chansons
+        const genreColorScale = d3.scaleOrdinal(d3.schemeSet3);
+        const songColor = '#ff6b6b'; // Rouge-orange pour les chansons
+
+        const getColor = (d, i) => {
+            if (d.type === 'genre') {
+                return genreColorScale(i);
+            } else {
+                return songColor;
+            }
+        };
 
         // Simulation de force pour positionner les bulles
         /** @type {any} */
         const simulation = d3.forceSimulation(children)
             .force('charge', d3.forceManyBody().strength(-100))
             .force('center', d3.forceCenter(width / 2, height / 2))
-            .force('collision', d3.forceCollide().radius(function (d) { return radiusScale((/** @type {any} */ (d)).songCount || 0) + 5; }));
+            .force('collision', d3.forceCollide().radius(function (d) { return getRadius(/** @type {any} */(d)) + 5; }));
 
         // Créer les bulles
         const bubbles = group.selectAll('.bubble')
@@ -202,41 +248,94 @@ export class TreeVisualization {
 
         // Cercles des bulles
         bubbles.append('circle')
-            .attr('r', d => radiusScale(d.songCount))
-            .style('fill', (d, i) => colorScale(i))
+            .attr('r', d => getRadius(d))
+            .style('fill', (d, i) => getColor(d, i))
             .style('stroke', '#333')
             .style('stroke-width', 2)
             .style('opacity', 0.8);
 
-        // Texte des bulles (nom du genre) - centré verticalement
+        // Texte des bulles - centré verticalement
         bubbles.append('text')
             .attr('text-anchor', 'middle')
             .attr('dy', '0.35em')
-            .style('font-size', d => Math.max(10, radiusScale(d.songCount) / 4) + 'px')
-            .style('font-weight', 'bold')
+            .style('font-size', d => {
+                const radius = getRadius(d);
+                // Taille de police adaptée : plus grande pour les chansons, proportionnelle pour les genres
+                if (d.type === 'song') {
+                    return Math.max(10, radius / 3) + 'px'; // Plus grande police pour les chansons
+                } else {
+                    return Math.max(9, radius / 4.5) + 'px'; // Police proportionnelle pour les genres
+                }
+            })
+            .style('font-weight', d => d.type === 'song' ? 'normal' : 'bold') // Texte normal pour les chansons
             .style('fill', '#333')
             .style('pointer-events', 'none')
             .each(function (d) {
-                const words = d.name.split(' ');
                 const text = d3.select(this);
+                const displayText = d.displayName || d.name;
+                const words = displayText.split(' ');
+                const radius = getRadius(d);
 
-                if (words.length > 1 && d.name.length > 15) {
-                    // Diviser en plusieurs lignes si nécessaire et centrer verticalement
+                // Ajuster la longueur du texte selon le type et la taille
+                let maxLength;
+                let shouldSplit = false;
+
+                // Ajuster la longueur du texte selon le type et la taille
+                if (d.type === 'song') {
+                    // Pour les chansons : plus de place avec les nouvelles bulles plus grandes
+                    maxLength = radius > 20 ? 35 : 25;
+                    shouldSplit = words.length > 1 && displayText.length > 15 && radius >= 20;
+                } else {
+                    // Pour les genres - plus permissif pour la division en lignes
+                    maxLength = radius > 35 ? 50 : 35;
+                    shouldSplit = words.length > 1 && displayText.length > 10 && radius > 25; // Plus permissif
+                }
+
+                if (displayText.length > maxLength) {
+                    // Tronquer le texte si trop long
+                    text.text(displayText.substring(0, maxLength - 3) + '...');
+                } else if (shouldSplit) {
+                    // Diviser intelligemment en lignes en groupant les mots
                     text.text('');
-                    const lineHeight = 1.2;
-                    const startY = -(words.length - 1) * lineHeight / 2;
-                    words.forEach((word, i) => {
+                    const lineHeight = d.type === 'song' ? 1.0 : 1.1;
+                    const maxLines = d.type === 'song' ? 3 : 3; // Augmenter à 3 lignes pour les genres aussi
+
+                    // Calculer la longueur maximale par ligne basée sur le rayon
+                    const maxCharsPerLine = Math.floor(radius / 3.5); // Adaptatif selon la taille de bulle
+
+                    // Grouper les mots intelligemment
+                    const lines = [];
+                    let currentLine = '';
+
+                    for (let word of words) {
+                        const testLine = currentLine ? currentLine + ' ' + word : word;
+
+                        // Si la ligne devient trop longue ou on a atteint le max de lignes
+                        if (testLine.length > maxCharsPerLine && currentLine !== '' && lines.length < maxLines - 1) {
+                            lines.push(currentLine);
+                            currentLine = word;
+                        } else {
+                            currentLine = testLine;
+                        }
+                    }
+
+                    // Ajouter la dernière ligne
+                    if (currentLine) lines.push(currentLine);
+
+                    // Limiter au nombre maximum de lignes
+                    const finalLines = lines.slice(0, maxLines);
+                    const startY = -(finalLines.length - 1) * lineHeight / 2;
+
+                    finalLines.forEach((line, i) => {
                         text.append('tspan')
                             .attr('x', 0)
                             .attr('dy', i === 0 ? `${startY}em` : `${lineHeight}em`)
-                            .text(word);
+                            .text(line);
                     });
                 } else {
-                    text.text(d.name);
+                    text.text(displayText);
                 }
-            });
-
-        // Informations supplémentaires (nombre de chansons)
+            });        // Informations supplémentaires (nombre de chansons)
         // bubbles.append('text')
         //     .attr('text-anchor', 'middle')
         //     .attr('dy', '1.5em')
@@ -258,13 +357,14 @@ export class TreeVisualization {
 
         // Événements de clic pour navigation
         bubbles.on('click', (event, d) => {
-            if (d.children && d.children.length > 0) {
+            if (d.type === 'genre') {
+                // Naviguer vers le genre (qu'il ait des enfants ou des chansons)
+                console.log(`Navigation vers le genre: "${d.name}" (${d.songCount} chansons)`);
                 this.navigateToChild(d);
                 this.renderBubbles(group, width, height);
-            } else {
-                console.log(`Genre "${d.name}" sélectionné (${d.songCount} chansons)`);
-                // Ici on pourrait afficher plus de détails sur le genre
-                this.showGenreDetails(d);
+            } else if (d.type === 'song') {
+                console.log(`Chanson sélectionnée: "${d.displayName}"`);
+                this.showSongDetails(d);
             }
         });
 
@@ -289,7 +389,7 @@ export class TreeVisualization {
         simulation.on('tick', () => {
             // Contraindre les cercles dans les limites du SVG
             children.forEach(d => {
-                const radius = radiusScale(d.songCount || 0);
+                const radius = getRadius(d);
                 d.x = Math.max(radius, Math.min(width - radius, d.x));
                 d.y = Math.max(radius + 40, Math.min(height - radius, d.y)); // +40 pour éviter le titre
             });
@@ -331,13 +431,37 @@ export class TreeVisualization {
         if (genreNode.songs && genreNode.songs.length > 0) {
             console.log('Premières chansons:');
             genreNode.songs.slice(0, 5).forEach((song, i) => {
-                console.log(`${i + 1}. ${song.artist_name} - ${song.track_name}`);
+                const artistName = song.artist_name || 'Artiste inconnu';
+                console.log(`${i + 1}. ${artistName} - ${song.track_name}`);
             });
             if (genreNode.songs.length > 5) {
                 console.log(`... et ${genreNode.songs.length - 5} autres`);
             }
         }
         console.log('========================');
+    }
+
+    /**
+     * Affiche les détails d'une chanson
+     * @param {any} songNode - Le nœud de chanson
+     */
+    showSongDetails(songNode) {
+        console.log('=== DÉTAILS DE LA CHANSON ===');
+        console.log(`Titre: ${songNode.name}`);
+        console.log(`Artiste: ${songNode.artist}`);
+
+        if (songNode.songData) {
+            const song = songNode.songData;
+            console.log('Informations supplémentaires:');
+            console.log(`ID Spotify: ${song.track_id}`);
+            // Afficher toutes les propriétés disponibles de la chanson
+            Object.keys(song).forEach(key => {
+                if (key !== 'track_name' && key !== 'track_id' && key !== 'artist_name') {
+                    console.log(`${key}: ${song[key]}`);
+                }
+            });
+        }
+        console.log('=============================');
     }
 
     /**

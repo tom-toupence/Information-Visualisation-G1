@@ -1,24 +1,22 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Spotimix</title>
 
   <!-- Font Awesome (icônes sidebar) -->
-  <link
-    rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
-    crossorigin="anonymous"
-    referrerpolicy="no-referrer"
-  />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
 
   <!-- D3 -->
   <script src="https://d3js.org/d3.v7.min.js"></script>
 
   <link rel="stylesheet" href="css/style.css" />
-  
+
 </head>
+
 <body>
   <!-- Sidebar -->
   <aside class="sidebar">
@@ -31,7 +29,7 @@
     <a class="side-icon" href="#" title="Graph 3">
       <i class="fa-solid fa-sliders"></i>
     </a>
-        <a class="side-icon" href="scatter.html" title="Scatter Plot">
+    <a class="side-icon" href="scatter.html" title="Scatter Plot">
       <i class="fa-solid fa-chart-scatter"></i>
     </a>
     </a>
@@ -56,7 +54,7 @@
 
   <!-- Grille des rectangles -->
   <main class="dashboard">
-  
+
 
     <a class="panel panel--a" href="#" aria-label="Graph 2 (à venir)">
       <div class="panel__title">Graph 1</div>
@@ -79,7 +77,7 @@
       </div>
     </a>
 
-      <a class="panel panel--d" href="scatter.html" aria-label="Ouvrir Scatter Plot">
+    <a class="panel panel--d" href="scatter.html" aria-label="Ouvrir Scatter Plot">
       <div class="panel__title">Scatter Plot - Energy vs Danceability</div>
       <div class="panel__body" id="preview-scatter">
         <!-- Mini preview généré par JS -->
@@ -89,4 +87,5 @@
 
   <script src="js/dashboard.js"></script>
 </body>
+
 </html>

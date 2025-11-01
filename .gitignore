@@ -2,3 +2,6 @@ node_modules
 dist
 .venv
 data
+types
+package-lock.json
+package.json

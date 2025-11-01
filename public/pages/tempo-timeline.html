@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Timeline Tempo - Spotimix</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="../style.css">
+    <style>
+        .tempo-timeline-page {
+            margin-left: 60px;
+            margin-top: 60px;
+            padding: 20px;
+            height: calc(100vh - 80px);
+        }
+
+        .page-header {
+            margin-bottom: 20px;
+        }
+
+        .page-header h2 {
+            color: var(--accent-4);
+            margin-bottom: 10px;
+        }
+
+        .page-header p {
+            color: var(--text);
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        #tempo-timeline-full {
+            width: 100%;
+            height: calc(100% - 180px);
+            background: var(--bg-light);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: var(--shadow-1);
+            overflow-x: auto;
+            overflow-y: hidden;
+        }
+        
+        /* Scrollbar horizontale stylisée */
+        #tempo-timeline-full::-webkit-scrollbar {
+            height: 14px;
+        }
+        
+        #tempo-timeline-full::-webkit-scrollbar-track {
+            background: var(--bg);
+            border-radius: 7px;
+        }
+        
+        #tempo-timeline-full::-webkit-scrollbar-thumb {
+            background: var(--accent-3);
+            border-radius: 7px;
+        }
+        
+        #tempo-timeline-full::-webkit-scrollbar-thumb:hover {
+            background: var(--accent-1);
+        }
+
+        .tempo-controls {
+            margin-bottom: 20px;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            background: var(--bg-light);
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: var(--shadow-1);
+        }
+
+        .tempo-input {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .tempo-input label {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text);
+        }
+
+        .tempo-input input {
+            padding: 8px 12px;
+            border: 1px solid var(--grey);
+            border-radius: 8px;
+            font-size: 14px;
+            width: 80px;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        .tempo-input button {
+            padding: 8px 16px;
+            background: var(--accent-4);
+            color: var(--bg);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .tempo-input button:hover {
+            background: var(--accent-1);
+            transform: translateY(-1px);
+        }
+
+        .tempo-point {
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .tempo-point:hover {
+            stroke-width: 3px !important;
+        }
+
+        .tempo-reference-line {
+            stroke: #ff6b6b;
+            stroke-width: 2;
+            stroke-dasharray: 5,5;
+        }
+
+        .timeline-base {
+            stroke: #333;
+            stroke-width: 1;
+        }
+
+        .legend {
+            margin-top: 15px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            font-size: 12px;
+            background: var(--bg-light);
+            color: var(--text);
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .legend-color {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 1px solid #fff;
+        }
+
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: white;
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 1000;
+            max-width: 200px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <a class="side-icon" href="../index.html" title="Retour Dashboard">
+            <i class="fa-solid fa-home"></i>
+        </a>
+        <a class="side-icon" href="heatmap.html" title="Graph 1">
+            <i class="fa-solid fa-border-all"></i>
+        </a>
+        <a class="side-icon" href="bubbles.html" title="Graph 2">
+            <i class="fa-solid fa-chart-pie"></i>
+        </a>
+        <a class="side-icon home active" href="#" title="Timeline Tempo">
+            <i class="fa-solid fa-sliders"></i>
+        </a>
+        <a class="side-icon" href="scatter.html" title="Graph 4">
+            <i class="fa-solid fa-chart-bar"></i>
+        </a>
+    </aside>
+
+    <!-- Topbar -->
+    <header class="topbar">
+        <h1 class="brand">SPOTIMIX - Timeline Tempo</h1>
+        <label class="select">
+            <select id="genre-filter">
+                <option>Choisir un genre</option>
+                <option>Pop</option>
+                <option>Rock</option>
+                <option>Rap</option>
+                <option>Electro</option>
+                <option>Hip-Hop</option>
+                <option>Acoustic</option>
+                <option>Funk</option>
+                <option>R&B</option>
+                <option>Electronic</option>
+                <option>Indie</option>
+                <option>Country</option>
+                <option>Jazz</option>
+                <option>Blues</option>
+                <option>Classical</option>
+            </select>
+        </label>
+    </header>
+
+    <!-- Contenu principal -->
+    <main class="tempo-timeline-page">
+        <div class="page-header">
+            <h2>Timeline des Tempos - Transitions Musicales</h2>
+            <p>Trouvez rapidement des morceaux populaires avec un tempo proche pour des transitions propres. La ligne rouge indique le tempo de référence. Cliquez sur un morceau pour le définir comme nouveau tempo de référence.</p>
+        </div>
+
+        <div class="tempo-controls">
+            <div class="tempo-input">
+                <label for="current-tempo">Tempo de référence :</label>
+                <input type="number" id="current-tempo" value="120" min="60" max="200">
+                <span>BPM</span>
+                <button id="update-tempo">Centrer</button>
+            </div>
+
+            <div class="tempo-input">
+                <button id="scroll-left">← -5 BPM</button>
+                <button id="scroll-right">+5 BPM →</button>
+            </div>
+            <div id="viewport-info" style="font-size: 12px; color: #666; margin-left: 15px;">
+                Vue: 110-130 BPM | Zoom: 1.0x | Morceaux: 0
+            </div>
+        </div>
+
+        <div id="tempo-timeline-full"></div>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background: #6eb6ff;"></div>
+                <span>Pop</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ff6ad5;"></div>
+                <span>Rock</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #8e98c9;"></div>
+                <span>Hip-Hop</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #5be7a9;"></div>
+                <span>Rap</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #6eb6ff;"></div>
+                <span>Electro/Electronic</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #ff6ad5;"></div>
+                <span>Acoustic</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #8e98c9;"></div>
+                <span>Funk</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background: #5be7a9;"></div>
+                <span>R&B</span>
+            </div>
+        </div>
+    </main>
+
+    <!-- Tooltip -->
+    <div id="tooltip" class="tooltip"></div>
+
+    <!-- Scripts -->
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script>
+        class TempoTimelineChart {
+            constructor(containerId, config = {}) {
+                this.config = {
+                    width: 1200,
+                    height: 200,
+                    margin: { top: 20, right: 30, bottom: 50, left: 60 },
+                    ...config
+                };
+                
+                this.data = [];
+                this.currentTempo = 120;
+                this.viewportMin = 110;
+                this.viewportMax = 130;
+                this.zoomLevel = 1;
+                this.timelineHeight = 0; // Sera calculé dynamiquement au centre
+                
+                this.container = d3.select(`#${containerId}`);
+                this.tooltip = d3.select('#tooltip');
+                
+                this.createSVG();
+                this.setupInteractions();
+            }
+            
+            createSVG() {
+                this.svg = this.container
+                    .append('svg')
+                    .attr('width', this.config.width)
+                    .attr('height', this.config.height);
+                    
+                this.g = this.svg.append('g')
+                    .attr('transform', `translate(${this.config.margin.left},${this.config.margin.top})`);
+                    
+                this.innerWidth = this.config.width - this.config.margin.left - this.config.margin.right;
+                this.innerHeight = this.config.height - this.config.margin.top - this.config.margin.bottom;
+                
+                // Calculer la position de la timeline au centre du graphique
+                this.timelineHeight = this.innerHeight / 2;
+            }
+
+            setupInteractions() {
+                // Pas de zoom sur molette, seulement les boutons de zoom
+                // La navigation se fait avec la barre de scroll
+            }
+            
+            setData(data) {
+                this.data = data;
+                return this;
+            }
+            
+            setCurrentTempo(tempo) {
+                this.currentTempo = tempo;
+                // Centrer la scrollbar sur le tempo sélectionné
+                this.centerScrollOnTempo(tempo);
+                return this;
+            }
+            
+            centerScrollOnTempo(tempo) {
+                const container = document.getElementById('tempo-timeline-full');
+                if (container) {
+                    const tempoPosition = this.tempoScale(tempo);
+                    const scrollPosition = tempoPosition - container.clientWidth / 2;
+                    container.scrollLeft = Math.max(0, Math.min(container.scrollWidth - container.clientWidth, scrollPosition));
+                }
+            }
+            
+            render() {
+                this.createScales();
+                this.drawChart();
+                this.drawAxes();
+                this.updateViewportInfo();
+                return this;
+            }
+            
+            createScales() {
+                // Focus+Context : largeur fixe avec zone centrale détaillée
+                const fullRange = 200 - 60; // 140 BPM
+                const pixelsPerBPM = 6; // 6 pixels par BPM fixe
+                const fullWidth = fullRange * pixelsPerBPM;
+                
+                // Mettre à jour la largeur du SVG
+                this.svg.attr('width', fullWidth + this.config.margin.left + this.config.margin.right);
+                this.innerWidth = fullWidth;
+                
+                // Recalculer la position centrale de la timeline
+                this.timelineHeight = this.innerHeight / 2;
+                
+                this.tempoScale = d3.scaleLinear()
+                    .domain([60, 200])
+                    .range([0, this.innerWidth]);
+                    
+                // Calculer les zones focus et context
+                this.focusCenter = this.currentTempo;
+                this.focusMin = this.focusCenter - 2;
+                this.focusMax = this.focusCenter + 2;
+                this.focusStartX = this.tempoScale(this.focusMin);
+                this.focusEndX = this.tempoScale(this.focusMax);
+                this.focusWidth = this.focusEndX - this.focusStartX;
+            }
+            
+            getTracksForCurrentView() {
+                const genreSelect = document.getElementById('genre-filter');
+                const selectedGenre = genreSelect.value;
+                
+                // Filtrer seulement par genre (afficher toute la plage de tempos)
+                const filteredTracks = this.data.filter(track => {
+                    if (selectedGenre !== 'Choisir un genre' && 
+                        track.genre.toLowerCase() !== selectedGenre.toLowerCase()) return false;
+                    return true;
+                });
+
+                // Seuil de popularité plus bas pour avoir plus de diversité
+                const popularityThreshold = 30;
+
+                return filteredTracks
+                    .filter(track => track.popularity >= popularityThreshold)
+                    .sort((a, b) => b.popularity - a.popularity);
+            }
+
+            arrangeTracksOnTimeline(tracks) {
+                const grouped = new Map();
+                
+                tracks.forEach(track => {
+                    const roundedTempo = Math.round(track.tempo * 2) / 2;
+                    if (!grouped.has(roundedTempo)) {
+                        grouped.set(roundedTempo, []);
+                    }
+                    grouped.get(roundedTempo).push(track);
+                });
+
+                return Array.from(grouped.entries()).map(([tempo, tracks]) => {
+                    const sortedTracks = tracks.sort((a, b) => b.popularity - a.popularity);
+                    
+                    // Dans la zone focus, garder jusqu'à 5 tracks par tempo
+                    // Dans la zone context, garder seulement la plus populaire
+                    const focusMinTempo = this.currentTempo - 2;
+                    const focusMaxTempo = this.currentTempo + 2;
+                    const isInFocus = tempo >= focusMinTempo && tempo <= focusMaxTempo;
+                    
+                    return {
+                        tempo,
+                        tracks: isInFocus ? sortedTracks.slice(0, 5) : [sortedTracks[0]]
+                    };
+                });
+            }
+            
+            drawChart() {
+                const tracksToShow = this.getTracksForCurrentView();
+                
+                // Nettoyer
+                this.g.selectAll('*').remove();
+
+                // Ligne de base timeline
+                this.g.append('line')
+                    .attr('class', 'timeline-base')
+                    .attr('x1', 0)
+                    .attr('x2', this.innerWidth)
+                    .attr('y1', this.timelineHeight)
+                    .attr('y2', this.timelineHeight)
+                    .attr('stroke', '#e2e2e2')
+                    .attr('stroke-width', 3);
+
+                // Zone de focus (60% du milieu) - Rectangle de surbrillance
+                const focusZoneWidth = this.innerWidth * 0.6;
+                const focusZoneStart = (this.innerWidth - focusZoneWidth) / 2;
+                
+                this.g.append('rect')
+                    .attr('class', 'focus-zone')
+                    .attr('x', focusZoneStart)
+                    .attr('y', 20)
+                    .attr('width', focusZoneWidth)
+                    .attr('height', this.innerHeight - 40)
+                    .attr('fill', 'rgba(255, 106, 213, 0.1)') // --accent-2 transparent
+                    .attr('stroke', '#ff6ad5')
+                    .attr('stroke-width', 2)
+                    .attr('stroke-dasharray', '10,5');
+
+                // Ligne de référence (toujours visible maintenant)
+                this.g.append('line')
+                    .attr('class', 'tempo-reference-line')
+                    .attr('x1', this.tempoScale(this.currentTempo))
+                    .attr('x2', this.tempoScale(this.currentTempo))
+                    .attr('y1', 20)
+                    .attr('y2', this.innerHeight - 20)
+                    .attr('stroke', '#ff6ad5')
+                    .attr('stroke-width', 3)
+                    .attr('stroke-dasharray', '5,5');
+
+                // Calculer les zones
+                const focusMinTempo = this.currentTempo - 2;
+                const focusMaxTempo = this.currentTempo + 2;
+
+                // Séparer les tracks en zones focus et context
+                const focusTracks = [];
+                const contextTracks = [];
+                
+                tracksToShow.forEach(track => {
+                    if (track.tempo >= focusMinTempo && track.tempo <= focusMaxTempo) {
+                        focusTracks.push(track);
+                    } else {
+                        contextTracks.push(track);
+                    }
+                });
+
+                // Dessiner la zone context (traits simples)
+                this.drawContextTracks(contextTracks);
+                
+                // Dessiner la zone focus (boules détaillées)
+                this.drawFocusTracks(focusTracks);
+            }
+            
+            drawContextTracks(tracks) {
+                const self = this;
+                const tracksByTempo = this.arrangeTracksOnTimeline(tracks);
+                
+                tracksByTempo.forEach(d => {
+                    const x = this.tempoScale(d.tempo);
+                    const track = d.tracks[0];
+                    
+                    // Simple trait vertical pour la zone context
+                    this.g.append('line')
+                        .attr('class', 'context-track')
+                        .attr('x1', x)
+                        .attr('x2', x)
+                        .attr('y1', this.timelineHeight - 15)
+                        .attr('y2', this.timelineHeight + 15)
+                        .attr('stroke', self.getGenreColor(track.genre))
+                        .attr('stroke-width', Math.max(2, track.popularity / 25))
+                        .attr('opacity', 0.6);
+                });
+            }
+            
+            drawFocusTracks(tracks) {
+                const self = this;
+                const tracksByTempo = this.arrangeTracksOnTimeline(tracks);
+                
+                tracksByTempo.forEach(d => {
+                    const x = this.tempoScale(d.tempo);
+                    const track = d.tracks[0];
+                    
+                    // Créer groupe pour chaque track
+                    const group = this.g.append('g')
+                        .attr('class', 'focus-track-group')
+                        .attr('transform', `translate(${x}, 0)`);
+                    
+                    // Étaler les tracks verticalement si plusieurs au même tempo
+                    const yPositions = this.calculateVerticalPositions(d.tracks, this.timelineHeight);
+                    
+                    d.tracks.forEach((track, index) => {
+                        const y = yPositions[index];
+                        
+                        // Boule détaillée pour la zone focus
+                        group.append('circle')
+                            .attr('class', 'focus-point')
+                            .attr('cx', 0)
+                            .attr('cy', y)
+                            .attr('r', Math.max(6, track.popularity / 10))
+                            .attr('fill', self.getGenreColor(track.genre))
+                            .attr('stroke', '#white')
+                            .attr('stroke-width', 2)
+                            .style('cursor', 'pointer')
+                            .datum(track)
+                            .on('mouseover', (event, d) => self.showTooltip(event, d))
+                            .on('mouseout', () => self.hideTooltip())
+                            .on('click', (event, d) => self.onTrackClick(d));
+                        
+                        // Ligne de connexion à la timeline si pas sur la ligne centrale
+                        if (y !== self.timelineHeight) {
+                            group.append('line')
+                                .attr('x1', 0)
+                                .attr('x2', 0)
+                                .attr('y1', self.timelineHeight)
+                                .attr('y2', y)
+                                .attr('stroke', self.getGenreColor(track.genre))
+                                .attr('stroke-width', 1)
+                                .attr('opacity', 0.4);
+                        }
+                        
+                        // Label d'artiste
+                        group.append('text')
+                            .attr('x', 0)
+                            .attr('y', y - 12)
+                            .attr('text-anchor', 'middle')
+                            .attr('font-size', '9px')
+                            .attr('fill', '#e2e2e2')
+                            .text(track.artist_name)
+                            .style('pointer-events', 'none');
+                    });
+                });
+            }
+            
+            calculateVerticalPositions(tracks, centerY) {
+                if (tracks.length === 1) return [centerY];
+                
+                const spacing = 25;
+                const positions = [];
+                const startY = centerY - ((tracks.length - 1) * spacing) / 2;
+                
+                for (let i = 0; i < tracks.length; i++) {
+                    positions.push(startY + i * spacing);
+                }
+                
+                return positions;
+            }
+            
+            drawAxes() {
+                // Axe X uniquement
+                this.g.append('g')
+                    .attr('class', 'x-axis')
+                    .attr('transform', `translate(0,${this.innerHeight - 10})`)
+                    .call(d3.axisBottom(this.tempoScale)
+                        .tickFormat(d => `${d} BPM`)
+                        .tickSize(-this.innerHeight + 20)
+                    )
+                    .selectAll('.tick line')
+                    .attr('stroke', '#535353')
+                    .attr('stroke-width', 1);
+
+                // Label
+                this.g.append('text')
+                    .attr('x', this.innerWidth / 2)
+                    .attr('y', this.innerHeight + 25)
+                    .attr('text-anchor', 'middle')
+                    .attr('font-size', '12px')
+                    .attr('fill', '#535353')
+                    .text(`Tempo (BPM) - Zoom: ${this.zoomLevel.toFixed(1)}x`);
+            }
+            
+            getGenreColor(genre) {
+                // Utilisation des couleurs d'accent définies dans style.css
+                const colors = {
+                    'pop': '#6eb6ff',       // --accent-1 (bleu)
+                    'rock': '#ff6ad5',      // --accent-2 (rose)
+                    'hip-hop': '#8e98c9',   // --accent-3 (mauve/gris)
+                    'rap': '#5be7a9',       // --accent-4 (vert menthe)
+                    'electro': '#6eb6ff',   // --accent-1 (bleu)
+                    'electronic': '#6eb6ff', // --accent-1 (bleu)
+                    'acoustic': '#ff6ad5',  // --accent-2 (rose)
+                    'funk': '#8e98c9',      // --accent-3 (mauve/gris)
+                    'r&b': '#5be7a9',       // --accent-4 (vert menthe)
+                    'indie': '#6eb6ff',     // --accent-1 (bleu)
+                    'country': '#ff6ad5',   // --accent-2 (rose)
+                    'jazz': '#8e98c9',      // --accent-3 (mauve/gris)
+                    'blues': '#5be7a9',     // --accent-4 (vert menthe)
+                    'classical': '#8e98c9'  // --accent-3 (mauve/gris)
+                };
+                return colors[genre.toLowerCase()] || '#8e98c9'; // --accent-3 par défaut
+            }
+            
+            showTooltip(event, d) {
+                this.tooltip
+                    .style('opacity', 1)
+                    .html(`
+                        <strong>${d.track_name}</strong><br/>
+                        <span style="color: #5be7a9;">${d.artist_name}</span><br/>
+                        <span style="color: #ff6ad5;">🎵 ${Math.round(d.tempo)} BPM</span><br/>
+                        ⭐ Popularité: ${d.popularity}%<br/>
+                        🎶 Genre: ${d.genre}
+                    `)
+                    .style('left', (event.pageX + 10) + 'px')
+                    .style('top', (event.pageY - 10) + 'px');
+            }
+            
+            hideTooltip() {
+                this.tooltip.style('opacity', 0);
+            }
+            
+            onTrackClick(track) {
+                console.log('🎵 Morceau sélectionné pour transition:', track);
+                this.setCurrentTempo(track.tempo);
+                document.getElementById('current-tempo').value = Math.round(track.tempo);
+                this.render();
+            }
+
+            // Méthodes de navigation
+
+            scrollLeft() {
+                const container = document.getElementById('tempo-timeline-full');
+                if (container) {
+                    container.scrollLeft = Math.max(0, container.scrollLeft - 100);
+                }
+            }
+
+            scrollRight() {
+                const container = document.getElementById('tempo-timeline-full');
+                if (container) {
+                    container.scrollLeft = Math.min(container.scrollWidth - container.clientWidth, container.scrollLeft + 100);
+                }
+            }
+
+            updateViewportInfo() {
+                const info = document.getElementById('viewport-info');
+                const tracksCount = this.getTracksForCurrentView().length;
+                const container = document.getElementById('tempo-timeline-full');
+                let scrollInfo = '';
+                
+                if (container && container.scrollWidth > container.clientWidth) {
+                    const scrollPercent = ((container.scrollLeft / (container.scrollWidth - container.clientWidth)) * 100).toFixed(0);
+                    scrollInfo = ` | Scroll: ${scrollPercent}%`;
+                }
+                
+                const focusRange = `${(this.currentTempo - 2).toFixed(1)}-${(this.currentTempo + 2).toFixed(1)}`;
+                info.textContent = `Vue: 60-200 BPM | Focus: ${focusRange} BPM | Morceaux: ${tracksCount}${scrollInfo}`;
+            }
+            
+            update() {
+                this.render();
+            }
+        }
+
+        // Classe principale de la page
+        class TempoTimelinePage {
+            constructor() {
+                this.allTracks = [];
+                this.chart = null;
+                this.currentTempo = 120;
+                this.popularityThreshold = 50;
+            }
+
+            async init() {
+                try {
+                    console.log('🚀 Initialisation de la page Timeline Tempo...');
+                    await this.loadData();
+                    this.createChart();
+                    this.setupControls();
+                    console.log('✅ Page Timeline Tempo initialisée');
+                } catch (error) {
+                    console.error('❌ Erreur lors de l\'initialisation:', error);
+                    this.showError('Erreur lors du chargement des données');
+                }
+            }
+
+            async loadData() {
+                try {
+                    // Charger les données CSV
+                    const data = await d3.csv('../spotify_data.csv');
+                    this.allTracks = data.map(row => ({
+                        artist_name: row.artist_name || '',
+                        track_name: row.track_name || '',
+                        track_id: row.track_id || '',
+                        popularity: parseInt(row.popularity) || 0,
+                        year: parseInt(row.year) || 2000,
+                        genre: row.genre || 'unknown',
+                        tempo: parseFloat(row.tempo) || 120,
+                        danceability: parseFloat(row.danceability) || 0,
+                        energy: parseFloat(row.energy) || 0,
+                        valence: parseFloat(row.valence) || 0
+                    }));
+                    
+                    console.log(`📊 ${this.allTracks.length} pistes chargées`);
+                } catch (error) {
+                    console.error('Erreur chargement CSV:', error);
+                    // Données de démonstration en cas d'erreur
+                    this.allTracks = this.getDefaultData();
+                }
+            }
+            
+            getDefaultData() {
+                return [
+                    { artist_name: "Ed Sheeran", track_name: "Shape of You", track_id: "1", popularity: 93, year: 2017, genre: "pop", tempo: 95.977 },
+                    { artist_name: "The Weeknd", track_name: "Blinding Lights", track_id: "2", popularity: 88, year: 2019, genre: "pop", tempo: 171.009 },
+                    { artist_name: "Dua Lipa", track_name: "Levitating", track_id: "3", popularity: 85, year: 2020, genre: "pop", tempo: 103.0 },
+                    { artist_name: "Justin Bieber", track_name: "Peaches", track_id: "4", popularity: 80, year: 2021, genre: "pop", tempo: 90.0 },
+                    { artist_name: "Ariana Grande", track_name: "7 rings", track_id: "5", popularity: 78, year: 2019, genre: "pop", tempo: 140.0 },
+                    { artist_name: "Miley Cyrus", track_name: "Flowers", track_id: "6", popularity: 75, year: 2023, genre: "pop", tempo: 96.0 }
+                ];
+            }
+
+            createChart() {
+                const containerHeight = window.innerHeight - 300;
+                // Largeur initiale, sera ajustée dynamiquement selon le zoom
+                const initialWidth = 1400; // 140 BPM * 10 pixels par BPM
+
+                this.chart = new TempoTimelineChart('tempo-timeline-full', {
+                    width: initialWidth,
+                    height: Math.max(400, containerHeight)
+                });
+
+                this.chart.popularityThreshold = this.popularityThreshold;
+                this.chart.setData(this.allTracks);
+                this.chart.render();
+                this.chart.setCurrentTempo(this.currentTempo);
+            }
+
+            setupControls() {
+                // Contrôle du tempo de référence
+                document.getElementById('update-tempo').addEventListener('click', () => {
+                    const tempoInput = document.getElementById('current-tempo');
+                    const tempo = parseInt(tempoInput.value) || 120;
+                    this.chart.setCurrentTempo(tempo);
+                    this.chart.render();
+                });
+
+                // Contrôles de scroll
+                document.getElementById('scroll-left').addEventListener('click', () => {
+                    this.chart.scrollLeft();
+                });
+
+                document.getElementById('scroll-right').addEventListener('click', () => {
+                    this.chart.scrollRight();
+                });
+
+                // Filtre par genre
+                document.getElementById('genre-filter').addEventListener('change', () => {
+                    this.chart.render();
+                });
+
+                // Support clavier
+                document.addEventListener('keydown', (e) => {
+                    switch(e.key) {
+                        case 'ArrowLeft':
+                            e.preventDefault();
+                            this.chart.scrollLeft();
+                            break;
+                        case 'ArrowRight':
+                            e.preventDefault();
+                            this.chart.scrollRight();
+                            break;
+
+                    }
+                });
+
+                // Enter key pour tempo
+                document.getElementById('current-tempo').addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        document.getElementById('update-tempo').click();
+                    }
+                });
+            }
+            
+            showError(message) {
+                const container = document.querySelector('.tempo-timeline-page');
+                const errorDiv = document.createElement('div');
+                errorDiv.style.cssText = 'color: red; padding: 20px; text-align: center; background: #fff; border-radius: 8px; margin: 20px 0;';
+                errorDiv.textContent = `❌ ${message}`;
+                container.insertBefore(errorDiv, container.firstChild);
+            }
+        }
+
+        // Initialiser la page
+        const tempoTimelinePage = new TempoTimelinePage();
+        tempoTimelinePage.init();
+    </script>
+</body>
+</html>

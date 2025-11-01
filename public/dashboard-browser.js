@@ -62,7 +62,7 @@ class Dashboard {
     [
       { cls: 'side-icon home', href: 'pages/heatmap.html', title: 'Graph 1', icon: 'fa-solid fa-border-all' },
       { cls: 'side-icon',      href: 'pages/bubbles.html', title: 'Graph 2', icon: 'fa-solid fa-chart-pie' },
-      { cls: 'side-icon',      href: 'pages/timeline.html',title: 'Graph 3', icon: 'fa-solid fa-sliders' },
+      { cls: 'side-icon',      href: 'pages/tempo-timeline.html',title: 'Graph 3', icon: 'fa-solid fa-sliders' },
       { cls: 'side-icon',      href: 'pages/scatter.html', title: 'Graph 4', icon: 'fa-solid fa-chart-bar' },
     ].forEach(l => {
       const a = aside.append('a').attr('class', l.cls).attr('href', l.href).attr('title', l.title);
@@ -84,7 +84,7 @@ class Dashboard {
     const panels = [
       { cls: 'panel--a', href: 'pages/heatmap.html', aria: 'Ouvrir Graph 1', title: 'Graph 1', chartId: 'genre-chart' },
       { cls: 'panel--b', href: 'pages/bubbles.html', aria: 'Ouvrir Graph 2', title: 'Graph 2', chartId: 'year-chart' },
-      { cls: 'panel--c', href: 'pages/timeline.html', aria: 'Ouvrir Graph 3', title: 'Graph 3', chartId: 'popularity-chart' },
+      { cls: 'panel--c', href: 'pages/tempo-timeline.html', aria: 'Ouvrir Graph 3', title: 'Graph 3', chartId: 'popularity-chart' },
       { cls: 'panel--d', href: 'pages/scatter.html', aria: 'Ouvrir Graph 4', title: 'Graph 4', chartId: 'energy-chart' },
     ];
     panels.forEach(p => {

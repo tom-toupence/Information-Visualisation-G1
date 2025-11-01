@@ -1,5 +1,5 @@
 import * as d3 from 'd3';
-import { SpotifyTrack, GenreData, YearData } from '../types';
+import { SpotifyTrack, GenreData, YearData, TempoTrackData } from '../types';
 
 export class DataUtils {
     // Agrégation par genre
@@ -60,6 +60,47 @@ export class DataUtils {
     static getYearRange(tracks: SpotifyTrack[]): [number, number] {
         const years = tracks.map(t => t.year);
         return [Math.min(...years), Math.max(...years)];
+    }
+
+    // Obtenir la plage de tempos
+    static getTempoRange(tracks: SpotifyTrack[]): [number, number] {
+        const tempos = tracks.map(t => t.tempo);
+        return [Math.min(...tempos), Math.max(...tempos)];
+    }
+
+    // Filtrer les morceaux par popularité minimale
+    static filterByPopularity(tracks: SpotifyTrack[], minPopularity: number = 50): SpotifyTrack[] {
+        return tracks.filter(track => track.popularity >= minPopularity);
+    }
+
+    // Obtenir les morceaux proches d'un tempo donné
+    static getTracksAroundTempo(tracks: SpotifyTrack[], targetTempo: number, range: number = 20): TempoTrackData[] {
+        return tracks
+            .map(track => ({
+                track,
+                tempoDifference: Math.abs(track.tempo - targetTempo),
+                isPopular: track.popularity >= 50
+            }))
+            .filter(item => item.tempoDifference <= range)
+            .sort((a, b) => a.tempoDifference - b.tempoDifference);
+    }
+
+    // Obtenir des statistiques sur les tempos par genre
+    static getTempoStatsByGenre(tracks: SpotifyTrack[]): Map<string, { avg: number, min: number, max: number, count: number }> {
+        const grouped = d3.group(tracks, d => d.genre);
+        const stats = new Map();
+
+        grouped.forEach((genreTracks, genre) => {
+            const tempos = genreTracks.map(t => t.tempo);
+            stats.set(genre, {
+                avg: d3.mean(tempos) || 0,
+                min: Math.min(...tempos),
+                max: Math.max(...tempos),
+                count: genreTracks.length
+            });
+        });
+
+        return stats;
     }
 }
 

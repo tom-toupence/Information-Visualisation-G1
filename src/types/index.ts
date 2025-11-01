@@ -58,4 +58,12 @@ export interface FilterOptions {
     yearRange?: [number, number];
     popularityRange?: [number, number];
     energyRange?: [number, number];
+    tempoRange?: [number, number];
+}
+
+// Types pour les données de tempo
+export interface TempoTrackData {
+    track: SpotifyTrack;
+    tempoDifference: number;
+    isPopular: boolean;
 }

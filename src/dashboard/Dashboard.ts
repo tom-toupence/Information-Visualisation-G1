@@ -1,6 +1,7 @@
 import * as d3 from 'd3';
 import { DataLoader } from '../data/DataLoader';
 import { GenreBarChart } from '../charts/BaseChart';
+import { TempoTimelineChart } from '../charts/TempoTimelineChart';
 import { SpotifyTrack, FilterOptions } from '../types';
 import { DataUtils } from '../utils';
 
@@ -73,7 +74,7 @@ export class Dashboard {
     [
       { cls: 'side-icon home', href: 'pages/heatmap.html', title: 'Graph 1', icon: 'fa-solid fa-border-all' },
       { cls: 'side-icon',      href: 'pages/bubbles.html', title: 'Graph 2', icon: 'fa-solid fa-chart-pie' },
-      { cls: 'side-icon',      href: 'pages/timeline.html',title: 'Graph 3', icon: 'fa-solid fa-sliders' },
+      { cls: 'side-icon',      href: 'pages/tempo-timeline.html',title: 'Graph 3', icon: 'fa-solid fa-sliders' },
       { cls: 'side-icon',      href: 'pages/scatter.html', title: 'Graph 4', icon: 'fa-solid fa-chart-bar' },
     ].forEach(l => {
       const a = aside.append('a').attr('class', l.cls).attr('href', l.href).attr('title', l.title);
@@ -95,7 +96,7 @@ export class Dashboard {
     const panels = [
       { cls: 'panel--a', href: 'pages/heatmap.html', aria: 'Ouvrir Graph 1', title: 'Graph 1', chartId: 'genre-chart' },
       { cls: 'panel--b', href: 'pages/bubbles.html', aria: 'Ouvrir Graph 2', title: 'Graph 2', chartId: 'year-chart' },
-      { cls: 'panel--c', href: 'pages/timeline.html', aria: 'Ouvrir Graph 3', title: 'Graph 3', chartId: 'popularity-chart' },
+      { cls: 'panel--c', href: 'pages/tempo-timeline.html', aria: 'Ouvrir Timeline Tempo', title: 'Timeline Tempo', chartId: 'tempo-timeline-chart' },
       { cls: 'panel--d', href: 'pages/scatter.html', aria: 'Ouvrir Graph 4', title: 'Graph 4', chartId: 'energy-chart' },
     ];
     panels.forEach(p => {
@@ -112,6 +113,11 @@ export class Dashboard {
     genreChart.setData(genreData).render();
     this.charts.set('genre', genreChart);
 
+    // Créer le chart timeline tempo (affichage preview dans le dashboard)
+    const tempoChart = new TempoTimelineChart('tempo-timeline-chart', { width: 350, height: 250 });
+    tempoChart.setData(this.filteredTracks).render();
+    this.charts.set('tempo-timeline', tempoChart);
+
     console.log('📈 Graphiques montés dans les panneaux');
   }
 
@@ -121,7 +127,11 @@ export class Dashboard {
       const genreData = DataUtils.aggregateByGenre(this.filteredTracks);
       genreChart.update(genreData);
     }
-    // TODO: update des autres charts
+    
+    const tempoChart = this.charts.get('tempo-timeline');
+    if (tempoChart) {
+      tempoChart.update(this.filteredTracks);
+    }
   }
 
   // --- Filtres ---

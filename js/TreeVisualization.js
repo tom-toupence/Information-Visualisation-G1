@@ -14,6 +14,12 @@ export class TreeVisualization {
 
         /** @type {any} */
         this.genreTree = null;
+        
+        // Configuration des métriques (version minimale)
+        /** @type {string} */
+        this.colorMetric = 'none'; // 'none', 'danceability', 'energy', 'popularity'
+        /** @type {string} */
+        this.sizeMetric = 'count'; // 'count', 'avg_popularity'
     }
 
     /**
@@ -239,26 +245,14 @@ export class TreeVisualization {
             return 6;
         };
 
-        // Fonction pour obtenir le rayon selon le type
+        // Utiliser la nouvelle logique de taille basée sur les métriques
         const getRadius = (d) => {
-            if (d.type === 'genre') {
-                return radiusScale('genre')(d.songCount);
-            } else {
-                // Chansons : taille fixe
-                return 50;
-            }
+            return this.getSizeByMetric(d);
         };
 
-        // Couleurs différentes pour genres et chansons
-        const genreColorScale = d3.scaleOrdinal(d3.schemeSet3);
-        const songColor = '#ff6b6b'; // Rouge-orange pour les chansons
-
+        // Utiliser la nouvelle logique de couleur basée sur les métriques
         const getColor = (d, i) => {
-            if (d.type === 'genre') {
-                return genreColorScale(i);
-            } else {
-                return songColor;
-            }
+            return this.getColorByMetric(d, i);
         };
 
         // Simulation de force pour positionner les bulles
@@ -1189,5 +1183,106 @@ export class TreeVisualization {
 
         traverse(this.genreTree);
         return stats;
+    }
+
+    /**
+     * Définit la métrique utilisée pour la couleur des bulles
+     * @param {string} metric - 'none', 'danceability', 'energy', 'popularity'
+     */
+    setColorMetric(metric) {
+        this.colorMetric = metric;
+        console.log(`Métrique de couleur définie: ${metric}`);
+    }
+
+    /**
+     * Définit la métrique utilisée pour la taille des bulles  
+     * @param {string} metric - 'count', 'avg_popularity'
+     */
+    setSizeMetric(metric) {
+        this.sizeMetric = metric;
+        console.log(`Métrique de taille définie: ${metric}`);
+    }
+
+    /**
+     * Calcule la couleur d'une bulle selon la métrique choisie
+     * @param {any} d - Les données du nœud
+     * @param {number} i - L'index du nœud
+     * @returns {string} La couleur
+     */
+    getColorByMetric(d, i) {
+        if (d.type === 'song') {
+            return '#ff6b6b'; // Couleur fixe pour les chansons
+        }
+
+        if (this.colorMetric === 'none') {
+            // Couleur par défaut (palette)
+            const genreColorScale = d3.scaleOrdinal(d3.schemeSet3);
+            return genreColorScale(i.toString());
+        }
+
+        // Utiliser la métrique pour la couleur
+        if (d.metrics && d.metrics[`avg_${this.colorMetric}`] !== undefined) {
+            const value = d.metrics[`avg_${this.colorMetric}`];
+            
+            // Échelles de couleur selon la métrique
+            if (this.colorMetric === 'danceability') {
+                const colorScale = d3.scaleSequential(d3.interpolateBlues)
+                    .domain([0, 1]);
+                return colorScale(value);
+            } else if (this.colorMetric === 'energy') {
+                const colorScale = d3.scaleSequential(d3.interpolateOranges)
+                    .domain([0, 1]);
+                return colorScale(value);
+            } else if (this.colorMetric === 'popularity') {
+                const colorScale = d3.scaleSequential(d3.interpolatePurples)
+                    .domain([0, 100]);
+                return colorScale(value);
+            }
+        }
+
+        // Fallback
+        const genreColorScale = d3.scaleOrdinal(d3.schemeSet3);
+        return genreColorScale(i.toString());
+    }
+
+    /**
+     * Calcule la taille d'une bulle selon la métrique choisie
+     * @param {any} d - Les données du nœud
+     * @returns {number} Le rayon
+     */
+    getSizeByMetric(d) {
+        if (d.type === 'song') {
+            return 50; // Taille fixe pour les chansons
+        }
+
+        if (this.sizeMetric === 'count') {
+            // Logique existante basée sur le nombre de chansons
+            const maxSongs = Math.max(...this.getCurrentChildren().filter(node => node.type === 'genre').map(node => node.songCount), 1);
+            const radiusScale = d3.scaleSqrt().domain([0, maxSongs]).range([25, 70]);
+            return radiusScale(d.songCount);
+        } else if (this.sizeMetric === 'avg_popularity' && d.metrics) {
+            // Taille basée sur la popularité moyenne
+            const popularityScale = d3.scaleSqrt().domain([0, 100]).range([25, 70]);
+            return popularityScale(d.metrics.avg_popularity || 0);
+        }
+
+        // Fallback
+        return 50;
+    }
+
+    /**
+     * Obtient les enfants actuels (pour les calculs de taille)
+     * @returns {Array} Les enfants actuels
+     */
+    getCurrentChildren() {
+        // Version simplifiée - retourne les enfants du niveau racine
+        if (this.genreTree && this.genreTree.children) {
+            return this.genreTree.children.map(child => ({
+                type: 'genre',
+                songCount: child.songs ? child.songs.length : 0,
+                metrics: child.metrics
+            }));
+        }
+        return [];
     }
 }

@@ -123,6 +123,13 @@ body {
   font-weight: 500;
 }
 
+/* Groupe de contrôles dans la topbar */
+.controls-group {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
 /* ============================================================================
    DASHBOARD (Grille de panels)
    ============================================================================ */

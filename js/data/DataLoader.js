@@ -97,7 +97,7 @@ export class DataLoader {
     }
 
     /**
-     * Valide la structure de l'arbre de genres enrichi
+     * Valide la structure de l'arbre de genres enrichi avec métriques
      * @param {any} node - Le nœud à valider
      * @returns {boolean} True si la structure est valide
      * @private
@@ -105,6 +105,15 @@ export class DataLoader {
     validateEnrichedTree(node) {
         if (!node || typeof node !== 'object' || typeof node.name !== 'string') return false;
         if (!Array.isArray(node.songs)) return false;
+        
+        // Vérifier la présence des métriques
+        if (node.metrics && typeof node.metrics === 'object') {
+            const requiredMetrics = ['count', 'avg_danceability', 'avg_energy', 'avg_popularity'];
+            for (const metric of requiredMetrics) {
+                if (!(metric in node.metrics)) return false;
+            }
+        }
+        
         if (node.children) {
             if (!Array.isArray(node.children)) return false;
             for (const child of node.children) {

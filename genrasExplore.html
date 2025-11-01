@@ -36,14 +36,23 @@
 
     <!-- Topbar -->
     <header class="topbar">
-        <h1 class="brand">CHART</h1>
-        <label class="select">
-            <select id="chart-select">
-                <option value="option1">Option 1</option>
-                <option value="option2">Option 2</option>
-                <option value="option3">Option 3</option>
-            </select>
-        </label>
+        <h1 class="brand">BUBBLE CHART</h1>
+        <div class="controls-group">
+            <label class="select">
+                <select id="color-metric-select">
+                    <option value="none">Couleur par défaut</option>
+                    <option value="danceability">Couleur par Danceability</option>
+                    <option value="energy">Couleur par Energy</option>
+                    <option value="popularity">Couleur par Popularité</option>
+                </select>
+            </label>
+            <label class="select">
+                <select id="size-metric-select">
+                    <option value="count">Taille par nombre</option>
+                    <option value="avg_popularity">Taille par popularité</option>
+                </select>
+            </label>
+        </div>
     </header>
 
     <!-- Contenu principal -->
@@ -77,6 +86,9 @@
                 // Créer une visualisation basique dans le conteneur chart-area
                 treeViz.createVisualization('#chart-area');
 
+                // Configurer les contrôles de métriques
+                setupMetricsControls(treeViz);
+
                 // Afficher quelques statistiques supplémentaires
                 const stats = treeViz.getTreeStatistics();
                 if (stats) {
@@ -91,6 +103,39 @@
                 console.error('Erreur lors de l\'initialisation de TreeVisualization :', error);
             }
         });
+
+        /**
+         * Configure les contrôles de métriques
+         * @param {TreeVisualization} treeViz - L'instance de TreeVisualization
+         */
+        function setupMetricsControls(treeViz) {
+            const colorSelect = document.getElementById('color-metric-select');
+            const sizeSelect = document.getElementById('size-metric-select');
+
+            // Écouter les changements de métrique de couleur
+            colorSelect.addEventListener('change', (e) => {
+                const metric = e.target.value;
+                console.log(`🎨 Changement de métrique de couleur: ${metric}`);
+                treeViz.setColorMetric(metric);
+                
+                // Recréer la visualisation avec la nouvelle métrique
+                document.getElementById('chart-area').innerHTML = '';
+                treeViz.createVisualization('#chart-area');
+            });
+
+            // Écouter les changements de métrique de taille
+            sizeSelect.addEventListener('change', (e) => {
+                const metric = e.target.value;
+                console.log(`📏 Changement de métrique de taille: ${metric}`);
+                treeViz.setSizeMetric(metric);
+                
+                // Recréer la visualisation avec la nouvelle métrique
+                document.getElementById('chart-area').innerHTML = '';
+                treeViz.createVisualization('#chart-area');
+            });
+
+            console.log('✅ Contrôles de métriques configurés');
+        }
     </script>
 </body>
 

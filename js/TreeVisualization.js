@@ -78,22 +78,25 @@ export class TreeVisualization {
         // Nettoyer le conteneur
         container.html('');
 
-        // Dimensions de la visualisation
-        const width = 800;
-        const height = 600;
+        // Calculer dynamiquement les dimensions en fonction du conteneur (taille réduite)
+        const node = /** @type {HTMLElement} */ (container.node());
+        const bbox = (node && node.getBoundingClientRect) ? node.getBoundingClientRect() : { width: window.innerWidth * 0.6, height: window.innerHeight * 0.6 };
+        const width = Math.max(400, Math.min(800, bbox.width || window.innerWidth * 0.6));
+        const height = Math.max(300, Math.min(600, bbox.height || window.innerHeight * 0.6));
         const margin = { top: 20, right: 20, bottom: 20, left: 20 };
 
-        // Créer le SVG
+        // Créer le SVG responsive, sans fond (transparent) et sans bordure
         const svg = container
             .append('svg')
             .attr('width', width)
             .attr('height', height)
-            .style('border', '1px solid #ccc')
-            .style('background', '#f9f9f9');
+            .attr('viewBox', `0 0 ${width} ${height}`)
+            .attr('preserveAspectRatio', 'xMidYMid meet')
+            .style('background', 'transparent')
+            .style('display', 'block');
 
-        // Groupe principal pour les transformations
-        const mainGroup = svg.append('g')
-            .attr('transform', `translate(${margin.left}, ${margin.top})`);
+        // Groupe principal (on positionne les éléments en coordonnées absolues)
+        const mainGroup = svg.append('g');
 
         // État de navigation
         this.currentNode = this.genreTree;
@@ -173,20 +176,21 @@ export class TreeVisualization {
             childCount: child.children ? child.children.length : 0
         }));
 
-        // Calculer la taille des bulles basée sur le nombre de chansons
+        // Calculer la taille des bulles basée sur le nombre de chansons (taille réduite)
         const maxSongs = Math.max(...children.map(d => d.songCount), 1);
         const radiusScale = d3.scaleSqrt()
             .domain([0, maxSongs])
-            .range([20, 80]);
+            .range([15, 60]);
 
         // Couleurs pour les bulles
         const colorScale = d3.scaleOrdinal(d3.schemeSet3);
 
         // Simulation de force pour positionner les bulles
+        /** @type {any} */
         const simulation = d3.forceSimulation(children)
             .force('charge', d3.forceManyBody().strength(-100))
             .force('center', d3.forceCenter(width / 2, height / 2))
-            .force('collision', d3.forceCollide().radius(d => radiusScale(d.songCount || 0) + 5));
+            .force('collision', d3.forceCollide().radius(function (d) { return radiusScale((/** @type {any} */ (d)).songCount || 0) + 5; }));
 
         // Créer les bulles
         const bubbles = group.selectAll('.bubble')
@@ -204,10 +208,10 @@ export class TreeVisualization {
             .style('stroke-width', 2)
             .style('opacity', 0.8);
 
-        // Texte des bulles (nom du genre)
+        // Texte des bulles (nom du genre) - centré verticalement
         bubbles.append('text')
             .attr('text-anchor', 'middle')
-            .attr('dy', '-0.5em')
+            .attr('dy', '0.35em')
             .style('font-size', d => Math.max(10, radiusScale(d.songCount) / 4) + 'px')
             .style('font-weight', 'bold')
             .style('fill', '#333')
@@ -217,12 +221,14 @@ export class TreeVisualization {
                 const text = d3.select(this);
 
                 if (words.length > 1 && d.name.length > 15) {
-                    // Diviser en plusieurs lignes si nécessaire
+                    // Diviser en plusieurs lignes si nécessaire et centrer verticalement
                     text.text('');
+                    const lineHeight = 1.2;
+                    const startY = -(words.length - 1) * lineHeight / 2;
                     words.forEach((word, i) => {
                         text.append('tspan')
                             .attr('x', 0)
-                            .attr('dy', i === 0 ? 0 : '1.2em')
+                            .attr('dy', i === 0 ? `${startY}em` : `${lineHeight}em`)
                             .text(word);
                     });
                 } else {
@@ -231,24 +237,24 @@ export class TreeVisualization {
             });
 
         // Informations supplémentaires (nombre de chansons)
-        bubbles.append('text')
-            .attr('text-anchor', 'middle')
-            .attr('dy', '1.5em')
-            .style('font-size', '10px')
-            .style('fill', '#666')
-            .style('pointer-events', 'none')
-            .text(d => `${d.songCount} chansons`);
+        // bubbles.append('text')
+        //     .attr('text-anchor', 'middle')
+        //     .attr('dy', '1.5em')
+        //     .style('font-size', '10px')
+        //     .style('fill', '#666')
+        //     .style('pointer-events', 'none')
+        //     .text(d => `${d.songCount} chansons`);
 
         // Indication des sous-enfants disponibles
-        bubbles.filter(d => d.childCount > 0)
-            .append('text')
-            .attr('text-anchor', 'middle')
-            .attr('dy', '2.8em')
-            .style('font-size', '9px')
-            .style('fill', '#007bff')
-            .style('font-weight', 'bold')
-            .style('pointer-events', 'none')
-            .text(d => `${d.childCount} sous-genres`);
+        // bubbles.filter(d => d.childCount > 0)
+        //     .append('text')
+        //     .attr('text-anchor', 'middle')
+        //     .attr('dy', '2.8em')
+        //     .style('font-size', '9px')
+        //     .style('fill', '#007bff')
+        //     .style('font-weight', 'bold')
+        //     .style('pointer-events', 'none')
+        //     .text(d => `${d.childCount} sous-genres`);
 
         // Événements de clic pour navigation
         bubbles.on('click', (event, d) => {

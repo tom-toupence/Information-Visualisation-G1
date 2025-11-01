@@ -370,4 +370,23 @@ svg text {
     cursor: pointer;
 }
 
+/* ============================================================================
+   TREE VISUALISATION AREA - centering and transparent background
+   ============================================================================ */
+#chart-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent; /* make the panel background transparent */
+  min-height: 70vh; /* ensure some vertical space for the viz */
+  width: 100%;
+}
+
+#chart-area svg {
+  display: block; /* avoid inline SVG whitespace */
+  background: transparent; /* ensure SVG background is transparent */
+  max-width: 100%;
+  height: auto;
+}
+
 

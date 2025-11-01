@@ -522,13 +522,15 @@ export class TreeVisualization {
             right: 20px;
             width: 300px;
             max-height: calc(100vh - 40px);
-            background: white;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            background: rgba(45, 52, 64, 0.95);
+            border: 1px solid rgba(128, 139, 150, 0.3);
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
             z-index: 1000;
-            font-family: Arial, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             overflow-y: auto;
+            color: #eceff4;
         `;
 
         document.body.appendChild(panel);
@@ -544,8 +546,8 @@ export class TreeVisualization {
 
         panel.innerHTML = `
             <div style="padding: 20px; text-align: center;">
-                <div style="font-size: 16px; color: #333; margin-bottom: 10px;">Chargement des détails...</div>
-                <div style="font-size: 14px; color: #666;">Veuillez patienter</div>
+                <div style="font-size: 16px; color: #eceff4; margin-bottom: 10px;">Chargement des détails...</div>
+                <div style="font-size: 14px; color: #d8dee9;">Veuillez patienter</div>
             </div>
         `;
     }
@@ -564,12 +566,13 @@ export class TreeVisualization {
         // Vider le panneau
         panel.innerHTML = '';
 
-        // En-tête avec titre et indicateur de complétude
+        // En-tête avec titre et bouton de fermeture
         const header = document.createElement('div');
         header.style.cssText = `
-            background: #f8f9fa;
+            background: rgba(59, 66, 82, 0.8);
             padding: 15px;
-            border-bottom: 1px solid #dee2e6;
+            border-bottom: 1px solid rgba(128, 139, 150, 0.2);
+            border-radius: 12px 12px 0 0;
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -579,41 +582,41 @@ export class TreeVisualization {
         headerTitle.textContent = 'Détails de la chanson';
         headerTitle.style.cssText = `
             margin: 0;
-            color: #333;
+            color: #eceff4;
             font-size: 16px;
+            font-weight: 500;
         `;
 
-        const completenessIndicator = document.createElement('span');
-        completenessIndicator.style.cssText = `
-            font-size: 10px;
-            padding: 3px 6px;
-            border-radius: 3px;
-            ${isComplete ? 
-                'background: #28a745; color: white;' : 
-                'background: #ffc107; color: #212529;'
-            }
-        `;
-        completenessIndicator.textContent = isComplete ? 'Complètes' : 'Partielles';
+
 
         const closeButton = document.createElement('button');
         closeButton.textContent = '×';
         closeButton.style.cssText = `
-            background: none;
-            border: none;
-            font-size: 18px;
+            background: rgba(191, 97, 106, 0.2);
+            border: 1px solid rgba(191, 97, 106, 0.3);
+            border-radius: 6px;
+            font-size: 16px;
             cursor: pointer;
-            color: #666;
-            padding: 0;
-            width: 20px;
-            height: 20px;
+            color: #bf616a;
+            padding: 4px;
+            width: 24px;
+            height: 24px;
             display: flex;
             align-items: center;
             justify-content: center;
+            transition: all 0.2s ease;
         `;
+        closeButton.onmouseover = () => {
+            closeButton.style.background = 'rgba(191, 97, 106, 0.4)';
+            closeButton.style.color = '#eceff4';
+        };
+        closeButton.onmouseout = () => {
+            closeButton.style.background = 'rgba(191, 97, 106, 0.2)';
+            closeButton.style.color = '#bf616a';
+        };
         closeButton.onclick = () => this.hideInfoPanel();
 
         header.appendChild(headerTitle);
-        header.appendChild(completenessIndicator);
         header.appendChild(closeButton);
 
         // Contenu principal
@@ -623,9 +626,9 @@ export class TreeVisualization {
         // Informations principales (titre et artiste en premier)
         const mainInfo = document.createElement('div');
         mainInfo.innerHTML = `
-            <div style="margin-bottom: 15px; padding: 12px; background: #fff3cd; border-radius: 5px; border-left: 4px solid #ffc107;">
-                <div style="color: #333; font-size: 16px; font-weight: bold; margin-bottom: 5px;">${song.track_name || 'Titre inconnu'}</div>
-                <div style="color: #666; font-size: 14px;">${song.artist_name || 'Artiste inconnu'}</div>
+            <div style="margin-bottom: 15px; padding: 12px; background: rgba(136, 192, 208, 0.15); border-radius: 8px; border-left: 4px solid #88c0d0;">
+                <div style="color: #eceff4; font-size: 16px; font-weight: 600; margin-bottom: 5px;">${song.track_name || 'Titre inconnu'}</div>
+                <div style="color: #d8dee9; font-size: 14px;">${song.artist_name || 'Artiste inconnu'}</div>
             </div>
         `;
 
@@ -702,19 +705,19 @@ export class TreeVisualization {
 
         const section = document.createElement('div');
         section.style.cssText = `
-            margin: 10px 0;
-            padding: 10px;
-            background: #f8f9fa;
-            border-radius: 5px;
-            border-left: 4px solid #007bff;
+            margin: 12px 0;
+            padding: 12px;
+            background: rgba(67, 76, 94, 0.4);
+            border-radius: 8px;
+            border-left: 4px solid #5e81ac;
         `;
 
         const sectionTitle = document.createElement('h3');
         sectionTitle.style.cssText = `
-            color: #333;
+            color: #eceff4;
             margin: 0 0 10px 0;
             font-size: 14px;
-            font-weight: bold;
+            font-weight: 600;
         `;
         sectionTitle.textContent = title;
 
@@ -730,13 +733,13 @@ export class TreeVisualization {
             infoItem.style.cssText = `
                 display: flex;
                 justify-content: space-between;
-                padding: 4px 0;
-                border-bottom: 1px solid #e0e0e0;
+                padding: 6px 0;
+                border-bottom: 1px solid rgba(128, 139, 150, 0.2);
             `;
 
             const keyElement = document.createElement('span');
             keyElement.textContent = this.formatPropertyName(key) + ':';
-            keyElement.style.cssText = 'color: #333; font-weight: 500;';
+            keyElement.style.cssText = 'color: #d8dee9; font-weight: 500;';
 
             const valueElement = document.createElement('span');
             const rawValue = song[key];
@@ -755,7 +758,7 @@ export class TreeVisualization {
             }
 
             valueElement.textContent = displayValue;
-            valueElement.style.cssText = 'color: #555; font-weight: normal;';
+            valueElement.style.cssText = 'color: #eceff4; font-weight: 400;';
 
             infoItem.appendChild(keyElement);
             infoItem.appendChild(valueElement);

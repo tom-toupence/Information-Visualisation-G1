@@ -1,7 +1,7 @@
 node_modules
 dist
 .venv
-data
+assets
 types
 package-lock.json
 package.json

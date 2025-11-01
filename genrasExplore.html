@@ -61,13 +61,30 @@
     </main>
 
     <!-- Script pour la page chart -->
-    <script>
+    <script type="module">
+        import { DataLoader } from './js/data/DataLoader.js';
+
         // Placeholder pour le code JavaScript du chart
-        document.addEventListener('DOMContentLoaded', function () {
+        document.addEventListener('DOMContentLoaded', async function () {
             console.log('Page Chart chargée');
 
-            // Ici vous pourrez ajouter le code pour votre visualisation
-            // Par exemple, avec D3.js ou une autre bibliothèque
+            try {
+                // Utiliser le DataLoader pour charger les données des genres avec chansons
+                const dataLoader = DataLoader.getInstance();
+                const genreTreeData = await dataLoader.loadGenreTreeWithSongs();
+
+                // Afficher les noms des enfants du premier niveau de l'arbre des genres
+                console.log('Enfants du premier niveau de l\'arbre des genres :');
+                if (genreTreeData && genreTreeData.children) {
+                    genreTreeData.children.forEach(child => {
+                        console.log('- ' + child.name);
+                    });
+                } else {
+                    console.log('Aucun enfant trouvé dans l\'arbre des genres');
+                }
+            } catch (error) {
+                console.error('Erreur lors du chargement des données :', error);
+            }
         });
     </script>
 </body>

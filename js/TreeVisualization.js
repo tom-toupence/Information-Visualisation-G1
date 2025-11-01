@@ -14,17 +14,17 @@ export class TreeVisualization {
 
         /** @type {any} */
         this.genreTree = null;
-        
+
         // Configuration des métriques (version minimale)
         /** @type {string} */
         this.colorMetric = 'none'; // 'none', 'danceability', 'energy', 'popularity'
         /** @type {string} */
         this.sizeMetric = 'count'; // 'count', 'avg_popularity'
-        
+
         // Configuration du nombre de titres à afficher
         /** @type {number} */
         this.songsLimit = 10; // Nombre max de titres à afficher
-        
+
         // Callback pour notifier les changements de navigation
         /** @type {Function|null} */
         this.onNavigationChange = null;
@@ -120,6 +120,40 @@ export class TreeVisualization {
         this.renderBubbles(mainGroup, width - margin.left - margin.right, height - margin.top - margin.bottom);
 
         console.log('Visualisation en bulles créée dans', containerSelector);
+    }
+
+    /**
+     * Rafraîchit la vue actuelle sans réinitialiser la navigation
+     * @param {string} containerSelector - Sélecteur CSS du conteneur
+     */
+    refreshCurrentView(containerSelector) {
+        const container = d3.select(containerSelector);
+
+        if (container.empty()) {
+            console.error(`Conteneur non trouvé: ${containerSelector}`);
+            return;
+        }
+
+        // Récupérer le groupe principal existant
+        const svg = container.select('svg');
+        if (svg.empty()) {
+            console.error('SVG non trouvé, utilisez createVisualization() d\'abord');
+            return;
+        }
+
+        const mainGroup = svg.select('g');
+
+        // Recalculer les dimensions (au cas où la fenêtre aurait été redimensionnée)
+        const node = /** @type {HTMLElement} */ (container.node());
+        const bbox = (node && node.getBoundingClientRect) ? node.getBoundingClientRect() : { width: window.innerWidth * 0.6, height: window.innerHeight * 0.6 };
+        const width = Math.max(400, Math.min(800, bbox.width || window.innerWidth * 0.6));
+        const height = Math.max(300, Math.min(600, bbox.height || window.innerHeight * 0.6));
+        const margin = { top: 20, right: 20, bottom: 20, left: 20 };
+
+        // Rerendre les bulles avec la navigation actuelle préservée
+        this.renderBubbles(mainGroup, width - margin.left - margin.right, height - margin.top - margin.bottom);
+
+        console.log('Vue actuelle rafraîchie');
     }
 
     /**
@@ -439,7 +473,7 @@ export class TreeVisualization {
         this.navigationHistory.push(childNode);
         this.currentNode = childNode;
         console.log(`Navigation vers: ${childNode.name}`);
-        
+
         // Notifier le changement de navigation si callback défini
         if (this.onNavigationChange) {
             this.onNavigationChange();
@@ -454,7 +488,7 @@ export class TreeVisualization {
             this.navigationHistory.pop();
             this.currentNode = this.navigationHistory[this.navigationHistory.length - 1];
             console.log(`Retour vers: ${this.currentNode.name}`);
-            
+
             // Notifier le changement de navigation si callback défini
             if (this.onNavigationChange) {
                 this.onNavigationChange();
@@ -1236,10 +1270,10 @@ export class TreeVisualization {
      */
     isDisplayingSongs() {
         if (!this.currentNode) return false;
-        
+
         // On affiche des titres si c'est une feuille avec des chansons
         return (!this.currentNode.children || this.currentNode.children.length === 0) &&
-               (this.currentNode.songs && this.currentNode.songs.length > 0);
+            (this.currentNode.songs && this.currentNode.songs.length > 0);
     }
 
     /**
@@ -1262,7 +1296,7 @@ export class TreeVisualization {
         // Utiliser la métrique pour la couleur
         if (d.metrics && d.metrics[`avg_${this.colorMetric}`] !== undefined) {
             const value = d.metrics[`avg_${this.colorMetric}`];
-            
+
             // Échelles de couleur selon la métrique
             if (this.colorMetric === 'danceability') {
                 const colorScale = d3.scaleSequential(d3.interpolateBlues)

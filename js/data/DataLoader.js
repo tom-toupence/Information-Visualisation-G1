@@ -17,7 +17,7 @@ export class DataLoader {
         this.cache = new Map();
         /** @type {string} */
         this.genreTreeFileName = 'assets/indexByGenreSongs.json';
-        this.loadSpotifyData().then(()=>{})
+        this.loadSpotifyData().then(() => { })
     }
 
     /**
@@ -105,7 +105,7 @@ export class DataLoader {
     validateEnrichedTree(node) {
         if (!node || typeof node !== 'object' || typeof node.name !== 'string') return false;
         if (!Array.isArray(node.songs)) return false;
-        
+
         // Vérifier la présence des métriques
         if (node.metrics && typeof node.metrics === 'object') {
             const requiredMetrics = ['count', 'avg_danceability', 'avg_energy', 'avg_popularity'];
@@ -113,7 +113,7 @@ export class DataLoader {
                 if (!(metric in node.metrics)) return false;
             }
         }
-        
+
         if (node.children) {
             if (!Array.isArray(node.children)) return false;
             for (const child of node.children) {
@@ -273,7 +273,7 @@ export class DataLoader {
             // D'abord essayer dans les données Spotify complètes
             const spotifyData = await this.loadSpotifyData();
             const foundTrack = spotifyData.find(track => track.track_id === id);
-            
+
             if (foundTrack) {
                 return foundTrack;
             }
@@ -281,7 +281,7 @@ export class DataLoader {
             // Si pas trouvé dans Spotify, chercher dans l'arbre de genres enrichi
             const genreTree = await this.loadGenreTreeWithSongs();
             const track = this.findTrackInTree(genreTree, id);
-            
+
             return track;
         } catch (error) {
             console.error(`Erreur lors de la recherche du titre avec l'ID ${id}:`, error);

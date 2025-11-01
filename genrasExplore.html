@@ -97,7 +97,7 @@
 
                 // Configurer les contrôles de métriques
                 const controlsManager = setupMetricsControls(treeViz);
-                
+
                 // Configurer le callback de navigation
                 treeViz.onNavigationChange = controlsManager.updateSongsLimitVisibility;
 
@@ -126,16 +126,22 @@
             const songsLimitSelect = document.getElementById('songs-limit-select');
             const songsLimitControl = document.getElementById('songs-limit-control');
 
-            // Fonction pour rafraîchir la visualisation
+            // Fonction pour rafraîchir la visualisation (préserve la navigation)
             function refreshVisualization() {
-                document.getElementById('chart-area').innerHTML = '';
-                treeViz.createVisualization('#chart-area');
+                treeViz.refreshCurrentView('#chart-area');
                 
                 // Mettre à jour la visibilité du contrôle de limite de titres
                 updateSongsLimitVisibility();
             }
 
-            // Fonction pour gérer la visibilité du contrôle de limite de titres
+            // Fonction pour recréer complètement la visualisation (repart de la racine)
+            function recreateVisualization() {
+                document.getElementById('chart-area').innerHTML = '';
+                treeViz.createVisualization('#chart-area');
+                
+                // Mettre à jour la visibilité du contrôle de limite de titres
+                updateSongsLimitVisibility();
+            }            // Fonction pour gérer la visibilité du contrôle de limite de titres
             function updateSongsLimitVisibility() {
                 if (treeViz.isDisplayingSongs()) {
                     songsLimitControl.style.display = 'inline-flex';
@@ -149,7 +155,7 @@
                 const metric = e.target.value;
                 console.log(`🎨 Changement de métrique de couleur: ${metric}`);
                 treeViz.setColorMetric(metric);
-                refreshVisualization();
+                refreshVisualization(); // Préserve la navigation
             });
 
             // Écouter les changements de métrique de taille
@@ -157,7 +163,7 @@
                 const metric = e.target.value;
                 console.log(`📏 Changement de métrique de taille: ${metric}`);
                 treeViz.setSizeMetric(metric);
-                refreshVisualization();
+                refreshVisualization(); // Préserve la navigation
             });
 
             // Écouter les changements de limite de titres
@@ -165,18 +171,19 @@
                 const limit = parseInt(e.target.value);
                 console.log(`🎵 Changement de limite de titres: ${limit}`);
                 treeViz.setSongsLimit(limit);
-                refreshVisualization();
+                refreshVisualization(); // Préserve la navigation - IMPORTANT !
             });
 
             // Vérification initiale de la visibilité
             updateSongsLimitVisibility();
 
             console.log('✅ Contrôles de métriques et de titres configurés');
-            
+
             // Retourner les fonctions utiles pour l'extérieur
             return {
                 updateSongsLimitVisibility,
-                refreshVisualization
+                refreshVisualization,
+                recreateVisualization
             };
         }
     </script>

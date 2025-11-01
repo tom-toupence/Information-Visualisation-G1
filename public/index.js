@@ -14,7 +14,7 @@ var __exportStar = (this && this.__exportStar) || function(m, exports) {
     for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports, p)) __createBinding(exports, m, p);
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.GenreBarChart = exports.BaseChart = exports.DataLoader = exports.Dashboard = void 0;
+exports.HeatmapProcessor = exports.HeatmapChart = exports.GenreBarChart = exports.BaseChart = exports.DataLoader = exports.Dashboard = void 0;
 const Dashboard_1 = require("./dashboard/Dashboard");
 // Initialisation de l'application
 async function initApp() {
@@ -52,6 +52,10 @@ Object.defineProperty(exports, "DataLoader", { enumerable: true, get: function (
 var BaseChart_1 = require("./charts/BaseChart");
 Object.defineProperty(exports, "BaseChart", { enumerable: true, get: function () { return BaseChart_1.BaseChart; } });
 Object.defineProperty(exports, "GenreBarChart", { enumerable: true, get: function () { return BaseChart_1.GenreBarChart; } });
+var HeatmapChart_1 = require("./charts/HeatmapChart");
+Object.defineProperty(exports, "HeatmapChart", { enumerable: true, get: function () { return HeatmapChart_1.HeatmapChart; } });
+var HeatmapProcessor_1 = require("./processor/HeatmapProcessor");
+Object.defineProperty(exports, "HeatmapProcessor", { enumerable: true, get: function () { return HeatmapProcessor_1.HeatmapProcessor; } });
 __exportStar(require("./types"), exports);
 __exportStar(require("./utils"), exports);
 //# sourceMappingURL=index.js.map

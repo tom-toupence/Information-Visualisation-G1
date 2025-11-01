@@ -5,7 +5,7 @@
     "main": "dist/index.js",
     "scripts": {
         "build": "tsc && npm run copy-js",
-        "copy-js": "copy dist\\index.js public\\index.js",
+        "copy-js": "cp dist/index.js public/index.js",
         "dev": "ts-node src/index.ts",
         "start": "node dist/index.js",
         "serve": "http-server public -p 3000 -o",

@@ -85,7 +85,23 @@ export class Dashboard {
     header.append('h1').attr('class', 'brand').text('SPOTIMIX');
     const selectLabel = header.append('label').attr('class', 'select');
     const genreSelect = selectLabel.append('select');
-    ['Choisir un genre', 'Pop', 'Rock', 'Rap', 'Electro'].forEach(t => genreSelect.append('option').text(t));
+    
+    // Ajouter l'option par défaut
+    genreSelect.append('option').text('Choisir un genre');
+    
+    // Extraire tous les genres uniques et les trier
+    const uniqueGenres = [...new Set(this.allTracks.map(track => track.genre))]
+      .filter(genre => genre && genre !== 'unknown')
+      .sort((a, b) => a.localeCompare(b));
+    
+    // Ajouter chaque genre au select
+    uniqueGenres.forEach(genre => {
+      genreSelect.append('option')
+        .text(genre.charAt(0).toUpperCase() + genre.slice(1))
+        .attr('value', genre);
+    });
+    
+    console.log(`🎵 ${uniqueGenres.length} genres disponibles dans le filtre`);
     
     // Ajouter la logique de filtrage pour le select de genre
     genreSelect.on('change', () => this.onGenreFilterChange());

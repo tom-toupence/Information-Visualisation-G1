@@ -34,5 +34,7 @@ if (typeof window !== 'undefined') {
 export { Dashboard } from './dashboard/Dashboard';
 export { DataLoader } from './data/DataLoader';
 export { BaseChart, GenreBarChart } from './charts/BaseChart';
+export { HeatmapChart } from './charts/HeatmapChart';
+export { HeatmapProcessor } from './processor/HeatmapProcessor';
 export * from './types';
 export * from './utils';

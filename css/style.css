@@ -369,3 +369,70 @@ svg text {
 .scatter-dot {
     cursor: pointer;
 }
+
+/* ============================================================================
+   CHART PAGE STYLES
+   ============================================================================ */
+
+.chart-container {
+  margin-left: 68px;
+  margin-top: 72px;
+  padding: var(--gap);
+  min-height: calc(100vh - 72px);
+}
+
+.chart-wrapper {
+  background: var(--bg-light);
+  border-radius: var(--radius-xl);
+  padding: 2rem;
+  box-shadow: var(--shadow-1), var(--shadow-2);
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.chart-wrapper h2 {
+  color: var(--text);
+  margin-bottom: 1.5rem;
+  text-align: center;
+  font-size: 1.8rem;
+  font-weight: 500;
+}
+
+#chart-area {
+  min-height: 500px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  border-radius: var(--radius-md);
+  border: 2px dashed rgba(255, 255, 255, 0.1);
+}
+
+.chart-placeholder {
+  text-align: center;
+  color: var(--grey);
+}
+
+.chart-placeholder i {
+  margin-bottom: 1rem;
+  color: var(--violet);
+}
+
+.chart-placeholder p {
+  font-size: 1.1rem;
+}
+
+.chart-preview {
+  text-align: center;
+  color: var(--grey);
+  padding: 1rem;
+}
+
+.chart-preview i {
+  margin-bottom: 0.5rem;
+  color: var(--violet);
+}
+
+.chart-preview p {
+  font-size: 0.9rem;
+}

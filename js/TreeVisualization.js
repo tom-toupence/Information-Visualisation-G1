@@ -125,7 +125,7 @@ export class TreeVisualization {
             .attr('text-anchor', 'middle')
             .style('font-size', '18px')
             .style('font-weight', 'bold')
-            .style('fill', '#333')
+            .style('fill', '#ffffffff')
             .text(this.currentNode.name);
 
         // Bouton retour (si pas à la racine)
@@ -473,27 +473,354 @@ export class TreeVisualization {
     }
 
     /**
-     * Affiche les détails d'une chanson
+     * Affiche les détails d'une chanson dans le panneau latéral
      * @param {any} songNode - Le nœud de chanson
      */
-    showSongDetails(songNode) {
-        console.log('=== DÉTAILS DE LA CHANSON ===');
-        console.log(`Titre: ${songNode.name}`);
-        console.log(`Artiste: ${songNode.artist}`);
-
-        if (songNode.songData) {
-            const song = songNode.songData;
-            console.log('Informations supplémentaires:');
-            console.log(`ID Spotify: ${song.track_id}`);
-            // Afficher toutes les propriétés disponibles de la chanson
-            Object.keys(song).forEach(key => {
-                if (key !== 'track_name' && key !== 'track_id' && key !== 'artist_name') {
-                    console.log(`${key}: ${song[key]}`);
-                }
-            });
+    async showSongDetails(songNode) {
+        if (!songNode.songData) {
+            console.warn('Aucune donnée disponible pour cette chanson');
+            return;
         }
-        console.log('=============================');
+
+        // Créer le panneau s'il n'existe pas
+        this.createInfoPanel();
+
+        // Afficher un indicateur de chargement dans le panneau
+        this.showLoadingInfo();
+
+        try {
+            // Récupérer les propriétés complètes via DataLoader
+            const fullTrackData = await this.dataLoader.getProps(songNode.songData.track_id);
+            
+            // Utiliser les données complètes si disponibles, sinon les données de base
+            const song = fullTrackData || songNode.songData;
+            
+            // Afficher les informations dans le panneau
+            this.displaySongInfo(song, !!fullTrackData);
+        } catch (error) {
+            console.error('Erreur lors du chargement des détails de la chanson:', error);
+            // Fallback sur les données de base
+            this.displaySongInfo(songNode.songData, false);
+        }
     }
+
+    /**
+     * Crée le panneau d'informations à droite si il n'existe pas
+     * @private
+     */
+    createInfoPanel() {
+        // Vérifier si le panneau existe déjà
+        if (document.getElementById('song-info-panel')) {
+            return;
+        }
+
+        const panel = document.createElement('div');
+        panel.id = 'song-info-panel';
+        panel.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            width: 300px;
+            max-height: calc(100vh - 40px);
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+            font-family: Arial, sans-serif;
+            overflow-y: auto;
+        `;
+
+        document.body.appendChild(panel);
+    }
+
+    /**
+     * Affiche un indicateur de chargement dans le panneau
+     * @private
+     */
+    showLoadingInfo() {
+        const panel = document.getElementById('song-info-panel');
+        if (!panel) return;
+
+        panel.innerHTML = `
+            <div style="padding: 20px; text-align: center;">
+                <div style="font-size: 16px; color: #333; margin-bottom: 10px;">Chargement des détails...</div>
+                <div style="font-size: 14px; color: #666;">Veuillez patienter</div>
+            </div>
+        `;
+    }
+
+    /**
+     * Affiche les détails de la chanson dans le panneau latéral
+     * @param {any} song - Les données de la chanson
+     * @param {boolean} isComplete - Si les données sont complètes ou partielles
+     * @private
+     */
+    displaySongInfo(song, isComplete) {
+
+        const panel = document.getElementById('song-info-panel');
+        if (!panel) return;
+
+        // Vider le panneau
+        panel.innerHTML = '';
+
+        // En-tête avec titre et indicateur de complétude
+        const header = document.createElement('div');
+        header.style.cssText = `
+            background: #f8f9fa;
+            padding: 15px;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        `;
+
+        const headerTitle = document.createElement('h3');
+        headerTitle.textContent = 'Détails de la chanson';
+        headerTitle.style.cssText = `
+            margin: 0;
+            color: #333;
+            font-size: 16px;
+        `;
+
+        const completenessIndicator = document.createElement('span');
+        completenessIndicator.style.cssText = `
+            font-size: 10px;
+            padding: 3px 6px;
+            border-radius: 3px;
+            ${isComplete ? 
+                'background: #28a745; color: white;' : 
+                'background: #ffc107; color: #212529;'
+            }
+        `;
+        completenessIndicator.textContent = isComplete ? 'Complètes' : 'Partielles';
+
+        const closeButton = document.createElement('button');
+        closeButton.textContent = '×';
+        closeButton.style.cssText = `
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: #666;
+            padding: 0;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        `;
+        closeButton.onclick = () => this.hideInfoPanel();
+
+        header.appendChild(headerTitle);
+        header.appendChild(completenessIndicator);
+        header.appendChild(closeButton);
+
+        // Contenu principal
+        const content = document.createElement('div');
+        content.style.padding = '15px';
+
+        // Informations principales (titre et artiste en premier)
+        const mainInfo = document.createElement('div');
+        mainInfo.innerHTML = `
+            <div style="margin-bottom: 15px; padding: 12px; background: #fff3cd; border-radius: 5px; border-left: 4px solid #ffc107;">
+                <div style="color: #333; font-size: 16px; font-weight: bold; margin-bottom: 5px;">${song.track_name || 'Titre inconnu'}</div>
+                <div style="color: #666; font-size: 14px;">${song.artist_name || 'Artiste inconnu'}</div>
+            </div>
+        `;
+
+        content.appendChild(mainInfo);
+
+        // Créer les sections d'informations organisées
+        this.createInfoSections(content, song, isComplete);
+
+        // Assembler le panneau
+        panel.appendChild(header);
+        panel.appendChild(content);
+
+        console.log(`Informations affichées pour: "${song.track_name}" - ${song.artist_name}`);
+    }
+
+    /**
+     * Cache le panneau d'informations
+     * @private
+     */
+    hideInfoPanel() {
+        const panel = document.getElementById('song-info-panel');
+        if (panel) {
+            panel.remove();
+        }
+    }
+
+    /**
+     * Crée les sections d'informations organisées
+     * @param {HTMLElement} container - Le conteneur parent
+     * @param {any} song - Les données de la chanson
+     * @param {boolean} isComplete - Si les données sont complètes
+     * @private
+     */
+    createInfoSections(container, song, isComplete) {
+        // Section des informations techniques de la musique
+        const audioFeatures = ['danceability', 'energy', 'valence', 'tempo', 'loudness', 'acousticness', 'instrumentalness', 'liveness', 'speechiness'];
+        const technicalInfo = ['key', 'mode', 'time_signature', 'duration_ms'];
+        const generalInfo = ['popularity', 'year', 'genre', 'track_id'];
+
+        if (audioFeatures.some(key => song[key] !== undefined)) {
+            this.createInfoSection(container, 'Caractéristiques Audio', audioFeatures, song, true);
+        }
+
+        if (technicalInfo.some(key => song[key] !== undefined)) {
+            this.createInfoSection(container, 'Informations Techniques', technicalInfo, song, false);
+        }
+
+        if (generalInfo.some(key => song[key] !== undefined)) {
+            this.createInfoSection(container, 'Informations Générales', generalInfo, song, false);
+        }
+
+        // Afficher les propriétés restantes s'il y en a
+        const displayedKeys = ['track_name', 'artist_name', ...audioFeatures, ...technicalInfo, ...generalInfo];
+        const remainingKeys = Object.keys(song).filter(key => !displayedKeys.includes(key));
+        
+        if (remainingKeys.length > 0) {
+            this.createInfoSection(container, 'Autres Propriétés', remainingKeys, song, false);
+        }
+    }
+
+    /**
+     * Crée une section d'informations
+     * @param {HTMLElement} container - Le conteneur parent
+     * @param {string} title - Le titre de la section
+     * @param {string[]} keys - Les clés à afficher
+     * @param {any} song - Les données de la chanson
+     * @param {boolean} isPercentage - Si les valeurs doivent être affichées en pourcentage
+     * @private
+     */
+    createInfoSection(container, title, keys, song, isPercentage = false) {
+        const availableKeys = keys.filter(key => song[key] !== undefined && song[key] !== null);
+        
+        if (availableKeys.length === 0) return;
+
+        const section = document.createElement('div');
+        section.style.cssText = `
+            margin: 10px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #007bff;
+        `;
+
+        const sectionTitle = document.createElement('h3');
+        sectionTitle.style.cssText = `
+            color: #333;
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            font-weight: bold;
+        `;
+        sectionTitle.textContent = title;
+
+        const infoGrid = document.createElement('div');
+        infoGrid.style.cssText = `
+            display: grid;
+            gap: 8px;
+            font-size: 13px;
+        `;
+
+        availableKeys.forEach(key => {
+            const infoItem = document.createElement('div');
+            infoItem.style.cssText = `
+                display: flex;
+                justify-content: space-between;
+                padding: 4px 0;
+                border-bottom: 1px solid #e0e0e0;
+            `;
+
+            const keyElement = document.createElement('span');
+            keyElement.textContent = this.formatPropertyName(key) + ':';
+            keyElement.style.cssText = 'color: #333; font-weight: 500;';
+
+            const valueElement = document.createElement('span');
+            const rawValue = song[key];
+            let displayValue;
+
+            if (isPercentage && typeof rawValue === 'number' && rawValue <= 1) {
+                displayValue = Math.round(rawValue * 100) + '%';
+            } else if (key === 'duration_ms') {
+                displayValue = this.formatDuration(rawValue);
+            } else if (key === 'key') {
+                displayValue = this.formatMusicalKey(rawValue);
+            } else if (key === 'mode') {
+                displayValue = rawValue === 1 ? 'Majeur' : 'Mineur';
+            } else {
+                displayValue = rawValue;
+            }
+
+            valueElement.textContent = displayValue;
+            valueElement.style.cssText = 'color: #555; font-weight: normal;';
+
+            infoItem.appendChild(keyElement);
+            infoItem.appendChild(valueElement);
+            infoGrid.appendChild(infoItem);
+        });
+
+        section.appendChild(sectionTitle);
+        section.appendChild(infoGrid);
+        container.appendChild(section);
+    }
+
+    /**
+     * Formate le nom d'une propriété pour l'affichage
+     * @param {string} key - La clé à formater
+     * @returns {string} Le nom formaté
+     * @private
+     */
+    formatPropertyName(key) {
+        const translations = {
+            'danceability': 'Dansabilité',
+            'energy': 'Énergie',
+            'valence': 'Valence',
+            'tempo': 'Tempo (BPM)',
+            'loudness': 'Volume (dB)',
+            'acousticness': 'Acoustique',
+            'instrumentalness': 'Instrumental',
+            'liveness': 'Live',
+            'speechiness': 'Vocal',
+            'popularity': 'Popularité',
+            'year': 'Année',
+            'genre': 'Genre',
+            'track_id': 'ID Spotify',
+            'key': 'Tonalité',
+            'mode': 'Mode',
+            'time_signature': 'Signature rythmique',
+            'duration_ms': 'Durée'
+        };
+
+        return translations[key] || key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    }
+
+    /**
+     * Formate une durée en millisecondes
+     * @param {number} ms - Durée en millisecondes
+     * @returns {string} Durée formatée
+     * @private
+     */
+    formatDuration(ms) {
+        const minutes = Math.floor(ms / 60000);
+        const seconds = Math.floor((ms % 60000) / 1000);
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    /**
+     * Formate une clé musicale
+     * @param {number} key - Clé musicale (0-11)
+     * @returns {string} Nom de la clé
+     * @private
+     */
+    formatMusicalKey(key) {
+        const keys = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+        return keys[key] || 'Inconnu';
+    }
+
+
 
     /**
      * Retourne les données de l'arbre pour utilisation externe

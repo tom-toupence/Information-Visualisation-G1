@@ -254,6 +254,61 @@ export class DataLoader {
     }
 
     /**
+     * Récupère les propriétés d'un titre par son ID
+     * @param {string} id - L'ID du titre à rechercher
+     * @returns {Promise<SpotifyTrack|null>} Les propriétés du titre ou null si non trouvé
+     */
+    async getProps(id) {
+        try {
+            // D'abord essayer dans les données Spotify complètes
+            const spotifyData = await this.loadSpotifyData();
+            const foundTrack = spotifyData.find(track => track.track_id === id);
+            
+            if (foundTrack) {
+                return foundTrack;
+            }
+
+            // Si pas trouvé dans Spotify, chercher dans l'arbre de genres enrichi
+            const genreTree = await this.loadGenreTreeWithSongs();
+            const track = this.findTrackInTree(genreTree, id);
+            
+            return track;
+        } catch (error) {
+            console.error(`Erreur lors de la recherche du titre avec l'ID ${id}:`, error);
+            return null;
+        }
+    }
+
+    /**
+     * Recherche récursive d'un titre dans l'arbre de genres
+     * @param {any} node - Le nœud de l'arbre à explorer
+     * @param {string} id - L'ID du titre à rechercher
+     * @returns {any|null} Le titre trouvé ou null
+     * @private
+     */
+    findTrackInTree(node, id) {
+        // Chercher dans les chansons du nœud actuel
+        if (node.songs && Array.isArray(node.songs)) {
+            const foundSong = node.songs.find(song => song.track_id === id);
+            if (foundSong) {
+                return foundSong;
+            }
+        }
+
+        // Chercher récursivement dans les enfants
+        if (node.children && Array.isArray(node.children)) {
+            for (const child of node.children) {
+                const result = this.findTrackInTree(child, id);
+                if (result) {
+                    return result;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Récupère la liste des genres disponibles
      * @returns {Promise<string[]>} Les genres disponibles triés
      */

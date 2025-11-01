@@ -1,0 +1,447 @@
+{
+  "name": "Music Genres",
+  "children": [
+    {
+      "name": "Traditional & Folk",
+      "children": [
+        {
+          "name": "Art music",
+          "children": [
+            {
+              "name": "classical"
+            },
+            {
+              "name": "opera"
+            }
+          ]
+        },
+        {
+          "name": "Roots",
+          "children": [
+            {
+              "name": "folk"
+            },
+            {
+              "name": "blues"
+            },
+            {
+              "name": "gospel"
+            },
+            {
+              "name": "country"
+            }
+          ]
+        },
+        {
+          "name": "Acoustic & song",
+          "children": [
+            {
+              "name": "acoustic"
+            },
+            {
+              "name": "singer-songwriter"
+            },
+            {
+              "name": "songwriter"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Jazz & Soul",
+      "children": [
+        {
+          "name": "Jazz",
+          "children": [
+            {
+              "name": "jazz"
+            }
+          ]
+        },
+        {
+          "name": "Soul & Funk",
+          "children": [
+            {
+              "name": "soul"
+            },
+            {
+              "name": "funk"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Rock & Alternative",
+      "children": [
+        {
+          "name": "rock",
+          "children": [
+            {
+              "name": "Alternative & indie",
+              "children": [
+                {
+                  "name": "alt-rock"
+                },
+                {
+                  "name": "indie-pop"
+                }
+              ]
+            },
+            {
+              "name": "Classic & hard",
+              "children": [
+                {
+                  "name": "rock-n-roll"
+                },
+                {
+                  "name": "hard-rock"
+                },
+                {
+                  "name": "guitar"
+                }
+              ]
+            },
+            {
+              "name": "Psychedelic",
+              "children": [
+                {
+                  "name": "psych-rock"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "punk",
+          "children": [
+            {
+              "name": "Punk lines",
+              "children": [
+                {
+                  "name": "punk-rock"
+                },
+                {
+                  "name": "goth"
+                }
+              ]
+            },
+            {
+              "name": "Hardcore & emo",
+              "children": [
+                {
+                  "name": "hardcore"
+                },
+                {
+                  "name": "emo"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "metal",
+          "children": [
+            {
+              "name": "Extreme metal",
+              "children": [
+                {
+                  "name": "black-metal"
+                },
+                {
+                  "name": "death-metal"
+                },
+                {
+                  "name": "grindcore"
+                }
+              ]
+            },
+            {
+              "name": "Core",
+              "children": [
+                {
+                  "name": "metalcore"
+                }
+              ]
+            },
+            {
+              "name": "Heavy & industrial",
+              "children": [
+                {
+                  "name": "heavy-metal"
+                },
+                {
+                  "name": "industrial"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Electronic & Dance",
+      "children": [
+        {
+          "name": "electronic",
+          "children": [
+            {
+              "name": "Ambient & new-age",
+              "children": [
+                {
+                  "name": "ambient"
+                },
+                {
+                  "name": "new-age"
+                }
+              ]
+            },
+            {
+              "name": "Breakbeat lineage",
+              "children": [
+                {
+                  "name": "breakbeat"
+                },
+                {
+                  "name": "drum-and-bass"
+                },
+                {
+                  "name": "dubstep"
+                },
+                {
+                  "name": "trip-hop"
+                }
+              ]
+            },
+            {
+              "name": "EDM & electro",
+              "children": [
+                {
+                  "name": "edm"
+                },
+                {
+                  "name": "electro"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "house",
+          "children": [
+            {
+              "name": "House styles",
+              "children": [
+                {
+                  "name": "chicago-house"
+                },
+                {
+                  "name": "deep-house"
+                },
+                {
+                  "name": "progressive-house"
+                },
+                {
+                  "name": "garage"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "techno",
+          "children": [
+            {
+              "name": "Techno proper",
+              "children": [
+                {
+                  "name": "detroit-techno"
+                },
+                {
+                  "name": "minimal-techno"
+                }
+              ]
+            },
+            {
+              "name": "Hard & trance",
+              "children": [
+                {
+                  "name": "hardstyle"
+                },
+                {
+                  "name": "trance"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "dance",
+          "children": [
+            {
+              "name": "Dance floor",
+              "children": [
+                {
+                  "name": "disco"
+                },
+                {
+                  "name": "club"
+                }
+              ]
+            },
+            {
+              "name": "Dub & groove",
+              "children": [
+                {
+                  "name": "dub"
+                },
+                {
+                  "name": "groove"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Hip-Hop & Urban",
+      "children": [
+        {
+          "name": "hip-hop"
+        },
+        {
+          "name": "dancehall"
+        }
+      ]
+    },
+    {
+      "name": "Pop & Commercial",
+      "children": [
+        {
+          "name": "pop",
+          "children": [
+            {
+              "name": "Pop substyles",
+              "children": [
+                {
+                  "name": "power-pop"
+                },
+                {
+                  "name": "pop-film"
+                },
+                {
+                  "name": "party"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "show-tunes"
+        },
+        {
+          "name": "comedy"
+        }
+      ]
+    },
+    {
+      "name": "World Music",
+      "children": [
+        {
+          "name": "Asian",
+          "children": [
+            {
+              "name": "cantopop"
+            },
+            {
+              "name": "k-pop"
+            },
+            {
+              "name": "indian"
+            }
+          ]
+        },
+        {
+          "name": "European",
+          "children": [
+            {
+              "name": "french"
+            },
+            {
+              "name": "german"
+            },
+            {
+              "name": "swedish"
+            }
+          ]
+        },
+        {
+          "name": "Latin",
+          "children": [
+            {
+              "name": "spanish"
+            },
+            {
+              "name": "salsa"
+            },
+            {
+              "name": "samba"
+            },
+            {
+              "name": "tango"
+            },
+            {
+              "name": "forro"
+            },
+            {
+              "name": "sertanejo"
+            }
+          ]
+        },
+        {
+          "name": "Caribbean",
+          "children": [
+            {
+              "name": "ska"
+            },
+            {
+              "name": "afrobeat"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Instrumental & Mood",
+      "children": [
+        {
+          "name": "Instrumental",
+          "children": [
+            {
+              "name": "piano"
+            }
+          ]
+        },
+        {
+          "name": "Moods",
+          "children": [
+            {
+              "name": "chill"
+            },
+            {
+              "name": "sleep"
+            },
+            {
+              "name": "sad"
+            },
+            {
+              "name": "romance"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

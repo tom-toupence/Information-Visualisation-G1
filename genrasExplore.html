@@ -101,6 +101,9 @@
                 // Configurer le callback de navigation
                 treeViz.onNavigationChange = controlsManager.updateSongsLimitVisibility;
 
+                // Faire la vérification initiale de la visibilité maintenant que tout est configuré
+                controlsManager.updateSongsLimitVisibility();
+
                 // Afficher quelques statistiques supplémentaires
                 const stats = treeViz.getTreeStatistics();
                 if (stats) {
@@ -129,7 +132,7 @@
             // Fonction pour rafraîchir la visualisation (préserve la navigation)
             function refreshVisualization() {
                 treeViz.refreshCurrentView('#chart-area');
-                
+
                 // Mettre à jour la visibilité du contrôle de limite de titres
                 updateSongsLimitVisibility();
             }
@@ -138,7 +141,7 @@
             function recreateVisualization() {
                 document.getElementById('chart-area').innerHTML = '';
                 treeViz.createVisualization('#chart-area');
-                
+
                 // Mettre à jour la visibilité du contrôle de limite de titres
                 updateSongsLimitVisibility();
             }            // Fonction pour gérer la visibilité du contrôle de limite de titres
@@ -173,9 +176,6 @@
                 treeViz.setSongsLimit(limit);
                 refreshVisualization(); // Préserve la navigation - IMPORTANT !
             });
-
-            // Vérification initiale de la visibilité
-            updateSongsLimitVisibility();
 
             console.log('✅ Contrôles de métriques et de titres configurés');
 

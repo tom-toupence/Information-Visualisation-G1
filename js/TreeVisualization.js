@@ -118,6 +118,11 @@ export class TreeVisualization {
 
         // Créer la visualisation initiale
         this.renderBubbles(mainGroup, width - margin.left - margin.right, height - margin.top - margin.bottom);
+        
+        // Notifier le changement si callback défini (pour mettre à jour la visibilité des contrôles)
+        if (this.onNavigationChange) {
+            this.onNavigationChange();
+        }
 
         console.log('Visualisation en bulles créée dans', containerSelector);
     }
@@ -152,6 +157,11 @@ export class TreeVisualization {
 
         // Rerendre les bulles avec la navigation actuelle préservée
         this.renderBubbles(mainGroup, width - margin.left - margin.right, height - margin.top - margin.bottom);
+
+        // Notifier le changement si callback défini (pour mettre à jour la visibilité des contrôles)
+        if (this.onNavigationChange) {
+            this.onNavigationChange();
+        }
 
         console.log('Vue actuelle rafraîchie');
     }

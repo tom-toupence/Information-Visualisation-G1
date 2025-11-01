@@ -17,6 +17,7 @@ export class DataLoader {
         this.cache = new Map();
         /** @type {string} */
         this.genreTreeFileName = 'assets/indexByGenreSongs.json';
+        this.loadSpotifyData().then(()=>{})
     }
 
     /**

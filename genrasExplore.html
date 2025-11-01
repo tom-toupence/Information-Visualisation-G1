@@ -38,7 +38,7 @@
     <header class="topbar">
         <h1 class="brand">BUBBLE CHART</h1>
         <div class="controls-group">
-            <label class="select">
+            <label class="select" id="color-metric-control">
                 <select id="color-metric-select">
                     <option value="none">Couleur par défaut</option>
                     <option value="danceability">Couleur par Danceability</option>
@@ -46,7 +46,7 @@
                     <option value="popularity">Couleur par Popularité</option>
                 </select>
             </label>
-            <label class="select">
+            <label class="select" id="size-metric-control">
                 <select id="size-metric-select">
                     <option value="count">Taille par nombre</option>
                     <option value="avg_popularity">Taille par popularité</option>
@@ -99,10 +99,10 @@
                 const controlsManager = setupMetricsControls(treeViz);
 
                 // Configurer le callback de navigation
-                treeViz.onNavigationChange = controlsManager.updateSongsLimitVisibility;
+                treeViz.onNavigationChange = controlsManager.updateControlsVisibility;
 
                 // Faire la vérification initiale de la visibilité maintenant que tout est configuré
-                controlsManager.updateSongsLimitVisibility();
+                controlsManager.updateControlsVisibility();
 
                 // Afficher quelques statistiques supplémentaires
                 const stats = treeViz.getTreeStatistics();
@@ -127,14 +127,16 @@
             const colorSelect = document.getElementById('color-metric-select');
             const sizeSelect = document.getElementById('size-metric-select');
             const songsLimitSelect = document.getElementById('songs-limit-select');
+            const colorMetricControl = document.getElementById('color-metric-control');
+            const sizeMetricControl = document.getElementById('size-metric-control');
             const songsLimitControl = document.getElementById('songs-limit-control');
 
             // Fonction pour rafraîchir la visualisation (préserve la navigation)
             function refreshVisualization() {
                 treeViz.refreshCurrentView('#chart-area');
 
-                // Mettre à jour la visibilité du contrôle de limite de titres
-                updateSongsLimitVisibility();
+                // Mettre à jour la visibilité des contrôles
+                updateControlsVisibility();
             }
 
             // Fonction pour recréer complètement la visualisation (repart de la racine)
@@ -142,16 +144,26 @@
                 document.getElementById('chart-area').innerHTML = '';
                 treeViz.createVisualization('#chart-area');
 
-                // Mettre à jour la visibilité du contrôle de limite de titres
-                updateSongsLimitVisibility();
-            }            // Fonction pour gérer la visibilité du contrôle de limite de titres
-            function updateSongsLimitVisibility() {
+                // Mettre à jour la visibilité des contrôles
+                updateControlsVisibility();
+            }            // Fonction pour gérer la visibilité des contrôles selon le contexte
+            function updateControlsVisibility() {
                 if (treeViz.isDisplayingSongs()) {
+                    // Vue des titres : Afficher seulement le contrôle de limite de titres
+                    colorMetricControl.style.display = 'none';
+                    sizeMetricControl.style.display = 'none';
                     songsLimitControl.style.display = 'inline-flex';
                 } else {
+                    // Vue des genres : Afficher les contrôles de métriques, cacher le contrôle de titres
+                    colorMetricControl.style.display = 'inline-flex';
+                    sizeMetricControl.style.display = 'inline-flex';
                     songsLimitControl.style.display = 'none';
                 }
             }
+
+            // Alias pour la rétrocompatibilité
+            // Alias pour compatibilité (si nécessaire)
+            const updateSongsLimitVisibility = updateControlsVisibility;
 
             // Écouter les changements de métrique de couleur
             colorSelect.addEventListener('change', (e) => {
@@ -181,7 +193,7 @@
 
             // Retourner les fonctions utiles pour l'extérieur
             return {
-                updateSongsLimitVisibility,
+                updateControlsVisibility,
                 refreshVisualization,
                 recreateVisualization
             };

@@ -1,6 +1,6 @@
 import * as d3 from 'd3';
-import { SpotifyTrack, ScatterData, FilterOptions } from '../types';
-import { DataLoader } from './DataLoader';
+import { SpotifyTrack, ScatterData, FilterOptions } from '../types/index.js';
+import { DataLoader } from './DataLoader.js';
 
 export class ScatterProcessor {
     private dataLoader: DataLoader;
@@ -12,18 +12,28 @@ export class ScatterProcessor {
     /**
      * Traite les données Spotify pour extraire les colonnes danceability, popularity, energy
      * @param options Options de filtrage optionnelles
+     * @param filterYear Année spécifique à charger (par défaut 2023 pour optimiser)
+     * @param topN Nombre de morceaux les plus populaires à garder (par défaut 1000)
      * @returns Tableau de données scatter
      */
-    async processScatterData(options?: FilterOptions): Promise<ScatterData[]> {
+    async processScatterData(options?: FilterOptions, filterYear: number = 2023, topN: number = 1000): Promise<ScatterData[]> {
         try {        
             // Charger les données complètes
             const spotifyTracks = await this.dataLoader.loadSpotifyData();
             
-            // Appliquer les filtres si spécifiés
-            let filteredTracks = spotifyTracks;
+            // Filtrer par année (2023 par défaut pour optimiser le chargement)
+            console.log(`📊 Filtrage des données pour l'année ${filterYear}...`);
+            let filteredTracks = spotifyTracks.filter(track => track.year === filterYear);
+            
+            // Appliquer les filtres additionnels si spécifiés
             if (options) {
-                filteredTracks = this.applyFilters(spotifyTracks, options);
+                filteredTracks = this.applyFilters(filteredTracks, options);
             }
+
+            // Trier par popularité et garder seulement les N plus populaires
+            filteredTracks = filteredTracks
+                .sort((a, b) => b.popularity - a.popularity)
+                .slice(0, topN);
 
             // Extraire les 3 colonnes principales + contexte optionnel
             const scatterData: ScatterData[] = filteredTracks.map(track => ({
@@ -32,17 +42,19 @@ export class ScatterProcessor {
                 energy: track.energy,
                 track_name: track.track_name,
                 artist_name: track.artist_name,
-                genre: track.genre
+                genre: track.genre,
+                valence: track.valence,
+                tempo: track.tempo
             }));
 
             // Nettoyer les données (supprimer les valeurs invalides)
             const cleanData = this.cleanScatterData(scatterData);
 
-            console.log(`${cleanData.length} enregistrements traités pour scatter plot`);
+            console.log(`✅ ${cleanData.length} pistes les plus populaires traitées pour scatter plot (année ${filterYear})`);
             return cleanData;
 
         } catch (error) {
-            console.error('Erreur lors du traitement des données scatter:', error);
+            console.error('❌ Erreur lors du traitement des données scatter:', error);
             return [];
         }
     }

@@ -1,5 +1,5 @@
 import * as d3 from 'd3';
-import { SpotifyTrack } from '../types';
+import { SpotifyTrack } from '../types/index.js';
 
 export class DataLoader {
     private cache: Map<string, any> = new Map();
@@ -26,7 +26,19 @@ export class DataLoader {
         try {
             console.log('🔄 Chargement des données Spotify...');
 
-            const rawData = await d3.csv('spotify_data.csv');
+            let rawData;
+            
+            // Différencier environnement Node.js vs navigateur
+            if (typeof window === 'undefined') {
+                // Node.js - lire le fichier avec fs
+                console.log('📂 Environnement Node.js détecté');
+                rawData = await this.loadCSVFromFileSystem();
+            } else {
+                // Navigateur - utiliser d3.csv normal
+                console.log('🌐 Environnement navigateur détecté');
+                rawData = await d3.csv('spotify_data.csv');
+            }
+            
             const spotifyTracks = this.parseSpotifyData(rawData);
 
             // Mettre en cache
@@ -73,6 +85,36 @@ export class DataLoader {
                 return null;
             }
         }).filter((track): track is SpotifyTrack => track !== null);
+    }
+
+    // Chargement CSV depuis le système de fichiers (Node.js)
+    private async loadCSVFromFileSystem(): Promise<any[]> {
+        try {
+            const fs = await import('fs');
+            const path = await import('path');
+            
+            const csvPath = path.join(process.cwd(), 'public', 'spotify_data.csv');
+            console.log(`📁 Lecture du fichier: ${csvPath}`);
+            
+            // Vérifier si le fichier existe
+            if (!fs.existsSync(csvPath)) {
+                throw new Error(`Fichier non trouvé: ${csvPath}`);
+            }
+            
+            // Lire le fichier
+            const csvContent = fs.readFileSync(csvPath, 'utf-8');
+            
+            // Parser avec d3.csvParse
+            const parsedData = d3.csvParse(csvContent);
+
+            console.log(`📊 ${parsedData.length} lignes chargées du CSV`);
+
+            return parsedData;
+
+        } catch (error) {
+            console.error('❌ Erreur lecture fichier CSV:', error);
+            throw error;
+        }
     }
 
     // Helper pour parser les nombres avec fallback

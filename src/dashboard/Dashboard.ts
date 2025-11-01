@@ -1,175 +1,357 @@
 import * as d3 from 'd3';
 import { DataLoader } from '../data/DataLoader';
 import { GenreBarChart } from '../charts/BaseChart';
+import { ScatterChart } from '../charts/ScatterChart';
 import { SpotifyTrack, FilterOptions } from '../types';
 import { DataUtils } from '../utils';
 
-type Sel = d3.Selection<any, unknown, any, unknown>;
-
 export class Dashboard {
-  private dataLoader: DataLoader;
-  private allTracks: SpotifyTrack[] = [];
-  private filteredTracks: SpotifyTrack[] = [];
-  private charts: Map<string, any> = new Map();
-  private currentFilters: FilterOptions = {};
+    private dataLoader: DataLoader;
+    private allTracks: SpotifyTrack[] = [];
+    private filteredTracks: SpotifyTrack[] = [];
+    private charts: Map<string, any> = new Map();
+    private currentFilters: FilterOptions = {};
 
-  constructor() {
-    this.dataLoader = DataLoader.getInstance();
-  }
-
-  async init(): Promise<void> {
-    try {
-      console.log('🚀 Initialisation du Dashboard...');
-      await this.loadData();
-      this.createUI();
-      this.createCharts();
-      this.setupFilters();
-      console.log('✅ Dashboard initialisé avec succès');
-    } catch (error) {
-      console.error('❌ Erreur lors de l\'initialisation:', error);
-      this.showError('Erreur lors du chargement du dashboard');
+    constructor() {
+        this.dataLoader = DataLoader.getInstance();
     }
-  }
 
-  // --- Data ---
-  private async loadData(): Promise<void> {
-    this.allTracks = await this.dataLoader.loadSpotifyData();
-    this.filteredTracks = [...this.allTracks];
-    console.log(`📊 ${this.allTracks.length} pistes chargées`);
-  }
+    // Initialisation du dashboard
+    async init(): Promise<void> {
+        try {
+            console.log('🚀 Initialisation du Dashboard...');
 
-  // --- Head assets (FontAwesome + style.css) ---
-  private ensureHeadAssets(): void {
-    const head = d3.select('head');
+            // Charger les données
+            await this.loadData();
 
-    if (head.select('link#fa-link').empty()) {
-      head.append('link')
-        .attr('id', 'fa-link')
-        .attr('rel', 'stylesheet')
-        .attr('href', 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css')
-        .attr('crossorigin', 'anonymous')
-        .attr('referrerpolicy', 'no-referrer');
+            // Créer l'interface
+            this.createUI();
+
+            // Créer les graphiques
+            this.createCharts();
+
+            // Configurer les filtres
+            this.setupFilters();
+
+            console.log('✅ Dashboard initialisé avec succès');
+
+        } catch (error) {
+            console.error('❌ Erreur lors de l\'initialisation:', error);
+            this.showError('Erreur lors du chargement du dashboard');
+        }
     }
-    if (head.select('link#app-style').empty()) {
-      head.append('link')
-        .attr('id', 'app-style')
-        .attr('rel', 'stylesheet')
-        .attr('href', 'style.css'); // ajuste le chemin si besoin
+
+    // Chargement des données
+    private async loadData(): Promise<void> {
+        this.allTracks = await this.dataLoader.loadSpotifyData();
+        this.filteredTracks = [...this.allTracks];
+
+        console.log(`📊 ${this.allTracks.length} pistes chargées`);
     }
-    if (head.select('meta[charset]').empty()) head.append('meta').attr('charset', 'UTF-8');
-    if (head.select('meta[name="viewport"]').empty()) head.append('meta').attr('name', 'viewport').attr('content', 'width=device-width, initial-scale=1');
-    if (head.select('title').empty()) head.append('title').text('Spotimix'); else head.select('title').text('Spotimix');
-  }
 
-  // --- UI (recrée l'ancien index.html) ---
-  private createUI(): void {
-    this.ensureHeadAssets();
+    // Création de l'interface utilisateur
+    private createUI(): void {
+        const container = d3.select('#dashboard-container') || d3.select('body');
 
-    const container = d3.select('#app').empty() ? d3.select('body') : d3.select('#app');
-    container.selectAll('*').remove();
+        // Effacer le contenu existant
+        container.selectAll('*').remove();
 
-    // Sidebar
-    const aside = container.append('aside').attr('class', 'sidebar');
-    [
-      { cls: 'side-icon home', href: 'pages/heatmap.html', title: 'Graph 1', icon: 'fa-solid fa-border-all' },
-      { cls: 'side-icon',      href: 'pages/bubbles.html', title: 'Graph 2', icon: 'fa-solid fa-chart-pie' },
-      { cls: 'side-icon',      href: 'pages/timeline.html',title: 'Graph 3', icon: 'fa-solid fa-sliders' },
-      { cls: 'side-icon',      href: 'pages/scatter.html', title: 'Graph 4', icon: 'fa-solid fa-chart-bar' },
-    ].forEach(l => {
-      const a = aside.append('a').attr('class', l.cls).attr('href', l.href).attr('title', l.title);
-      a.append('i').attr('class', l.icon);
-    });
+        // Header
+        const header = container.append('div')
+            .attr('class', 'dashboard-header')
+            .style('padding', '20px')
+            .style('background', '#f8f9fa')
+            .style('border-bottom', '1px solid #dee2e6');
 
-    // Topbar
-    const header = container.append('header').attr('class', 'topbar');
-    header.append('h1').attr('class', 'brand').text('SPOTIMIX');
-    const selectLabel = header.append('label').attr('class', 'select');
-    const genreSelect = selectLabel.append('select');
-    ['Choisir un genre', 'Pop', 'Rock', 'Rap', 'Electro'].forEach(t => genreSelect.append('option').text(t));
-    
-    // Ajouter la logique de filtrage pour le select de genre
-    genreSelect.on('change', () => this.onGenreFilterChange());
+        header.append('h1')
+            .text('🎵 Spotify Music Dashboard')
+            .style('margin', '0')
+            .style('color', '#1db954');
 
-    // Grille des panneaux
-    const main = container.append('main').attr('class', 'dashboard');
-    const panels = [
-      { cls: 'panel--a', href: 'pages/heatmap.html', aria: 'Ouvrir Graph 1', title: 'Graph 1', chartId: 'genre-chart' },
-      { cls: 'panel--b', href: 'pages/bubbles.html', aria: 'Ouvrir Graph 2', title: 'Graph 2', chartId: 'year-chart' },
-      { cls: 'panel--c', href: 'pages/timeline.html', aria: 'Ouvrir Graph 3', title: 'Graph 3', chartId: 'popularity-chart' },
-      { cls: 'panel--d', href: 'pages/scatter.html', aria: 'Ouvrir Graph 4', title: 'Graph 4', chartId: 'energy-chart' },
-    ];
-    panels.forEach(p => {
-      const a = main.append('a').attr('class', `panel ${p.cls}`).attr('href', p.href).attr('aria-label', p.aria);
-      a.append('div').attr('class', 'panel__title').text(p.title);
-      a.append('div').attr('class', 'panel__body').append('div').attr('id', p.chartId).style('width', '100%').style('height', '100%');
-    });
-  }
+        header.append('p')
+            .text(`Analyse de ${this.allTracks.length} pistes musicales`)
+            .style('margin', '5px 0 0 0')
+            .style('color', '#666');
 
-  // --- Charts ---
-  private createCharts(): void {
-    const genreData = DataUtils.aggregateByGenre(this.filteredTracks);
-    const genreChart = new GenreBarChart('genre-chart', { width: 350, height: 250, color: '#1db954' });
-    genreChart.setData(genreData).render();
-    this.charts.set('genre', genreChart);
+        // Filters section
+        const filtersSection = container.append('div')
+            .attr('class', 'filters-section')
+            .style('padding', '20px')
+            .style('background', '#fff')
+            .style('border-bottom', '1px solid #dee2e6')
+            .style('display', 'flex')
+            .style('gap', '20px')
+            .style('flex-wrap', 'wrap');
 
-    console.log('📈 Graphiques montés dans les panneaux');
-  }
+        // Charts container
+        const chartsContainer = container.append('div')
+            .attr('class', 'charts-container')
+            .style('padding', '20px')
+            .style('display', 'grid')
+            .style('grid-template-columns', 'repeat(auto-fit, minmax(400px, 1fr))')
+            .style('gap', '20px');
 
-  private updateCharts(): void {
-    const genreChart = this.charts.get('genre');
-    if (genreChart) {
-      const genreData = DataUtils.aggregateByGenre(this.filteredTracks);
-      genreChart.update(genreData);
+        // Chart cards
+        this.createChartCard(chartsContainer, 'genre-chart', 'Répartition par Genre');
+        this.createChartCard(chartsContainer, 'year-chart', 'Évolution par Année');
+        this.createChartCard(chartsContainer, 'popularity-chart', 'Popularité par Genre');
+        this.createChartCard(chartsContainer, 'energy-chart', 'Énergie vs Danceabilité');
     }
-    // TODO: update des autres charts
-  }
 
-  // --- Filtres ---
-  private setupFilters(): void {
-    console.log('🔧 Filtre de genre configuré');
-  }
+    // Création d'une carte de graphique
+    private createChartCard(container: any, chartId: string, title: string): void {
+        const card = container.append('div')
+            .attr('class', 'chart-card')
+            .style('background', 'white')
+            .style('border-radius', '8px')
+            .style('box-shadow', '0 2px 4px rgba(0,0,0,0.1)')
+            .style('padding', '20px');
 
-  private onGenreFilterChange(): void {
-    const genreSelect = d3.select('.topbar select').node() as HTMLSelectElement | null;
-    if (!genreSelect) return;
+        card.append('h3')
+            .text(title)
+            .style('margin', '0 0 15px 0')
+            .style('color', '#333');
 
-    const selectedGenre = genreSelect.value;
-    
-    if (selectedGenre === 'Choisir un genre') {
-      // Aucun filtre, afficher toutes les pistes
-      this.filteredTracks = [...this.allTracks];
-    } else {
-      // Filtrer par genre sélectionné
-      this.filteredTracks = this.allTracks.filter(track => 
-        track.genre.toLowerCase() === selectedGenre.toLowerCase()
-      );
+        card.append('div')
+            .attr('id', chartId)
+            .style('width', '100%')
+            .style('height', '300px');
     }
-    
-    console.log(`🔍 ${this.filteredTracks.length} pistes après filtrage par genre: ${selectedGenre}`);
-    this.updateCharts();
-  }
 
-  // --- Helpers / API publique ---
-  private showError(message: string): void {
-    const container = d3.select('body');
-    container.append('div')
-      .style('color', 'red')
-      .style('padding', '20px')
-      .style('text-align', 'center')
-      .text(`❌ ${message}`);
-  }
+    // Création des graphiques
+    private createCharts(): void {
+        // Graphique des genres
+        const genreData = DataUtils.aggregateByGenre(this.filteredTracks);
+        const genreChart = new GenreBarChart('genre-chart', {
+            width: 350,
+            height: 250,
+            color: '#1db954'
+        });
 
-  public refresh(): void {
-    this.updateCharts();
-  }
+        genreChart.setData(genreData).render();
+        this.charts.set('genre', genreChart);
 
-  public resetFilters(): void {
-    this.filteredTracks = [...this.allTracks];
-    // Remettre le select à la valeur par défaut
-    const genreSelect = d3.select('.topbar select').node() as HTMLSelectElement | null;
-    if (genreSelect) {
-      genreSelect.value = 'Choisir un genre';
+        // Graphique scatter (Énergie vs Danceabilité)
+        const scatterChart = new ScatterChart('energy-chart', {
+            width: 350,
+            height: 250,
+            xLabel: 'Energy',
+            yLabel: 'Danceability'
+        });
+
+        // Préparer les données pour le scatter plot
+        const scatterData = this.filteredTracks.map(track => ({
+            x: track.energy,
+            y: track.danceability,
+            label: track.track_name,
+            genre: track.genre
+        }));
+
+        scatterChart.setData(scatterData).render();
+        this.charts.set('scatter', scatterChart);
+
+        // TODO: Ajouter d'autres graphiques (year, popularity, energy)
+        console.log('📈 Graphiques créés');
     }
-    this.updateCharts();
-  }
+
+    // Configuration des filtres
+    private setupFilters(): void {
+        const filtersSection = d3.select('.filters-section');
+
+        // Filtre par genre
+        this.createGenreFilter(filtersSection);
+
+        // Filtre par année
+        this.createYearFilter(filtersSection);
+
+        // Filtre par popularité
+        this.createPopularityFilter(filtersSection);
+
+        console.log('🔧 Filtres configurés');
+    }
+
+    // Filtre des genres
+    private createGenreFilter(container: any): void {
+        const filterDiv = container.append('div')
+            .attr('class', 'filter-group');
+
+        filterDiv.append('label')
+            .text('Genres:')
+            .style('display', 'block')
+            .style('margin-bottom', '5px')
+            .style('font-weight', 'bold');
+
+        const select = filterDiv.append('select')
+            .attr('multiple', true)
+            .style('width', '200px')
+            .style('height', '100px')
+            .style('padding', '5px')
+            .on('change', () => this.onFiltersChange());
+
+        const genres = DataUtils.getUniqueGenres(this.allTracks);
+        select.selectAll('option')
+            .data(genres)
+            .enter()
+            .append('option')
+            .attr('value', (d: string) => d)
+            .text((d: string) => d);
+    }
+
+    // Filtre des années
+    private createYearFilter(container: any): void {
+        const filterDiv = container.append('div')
+            .attr('class', 'filter-group');
+
+        filterDiv.append('label')
+            .text('Années:')
+            .style('display', 'block')
+            .style('margin-bottom', '5px')
+            .style('font-weight', 'bold');
+
+        const [minYear, maxYear] = DataUtils.getYearRange(this.allTracks);
+
+        const rangeDiv = filterDiv.append('div')
+            .style('display', 'flex')
+            .style('gap', '10px')
+            .style('align-items', 'center');
+
+        rangeDiv.append('input')
+            .attr('type', 'number')
+            .attr('id', 'year-min')
+            .attr('min', minYear)
+            .attr('max', maxYear)
+            .attr('value', minYear)
+            .style('width', '80px')
+            .on('change', () => this.onFiltersChange());
+
+        rangeDiv.append('span').text(' - ');
+
+        rangeDiv.append('input')
+            .attr('type', 'number')
+            .attr('id', 'year-max')
+            .attr('min', minYear)
+            .attr('max', maxYear)
+            .attr('value', maxYear)
+            .style('width', '80px')
+            .on('change', () => this.onFiltersChange());
+    }
+
+    // Filtre de popularité
+    private createPopularityFilter(container: any): void {
+        const filterDiv = container.append('div')
+            .attr('class', 'filter-group');
+
+        filterDiv.append('label')
+            .text('Popularité:')
+            .style('display', 'block')
+            .style('margin-bottom', '5px')
+            .style('font-weight', 'bold');
+
+        const rangeDiv = filterDiv.append('div')
+            .style('display', 'flex')
+            .style('gap', '10px')
+            .style('align-items', 'center');
+
+        rangeDiv.append('input')
+            .attr('type', 'range')
+            .attr('id', 'popularity-min')
+            .attr('min', 0)
+            .attr('max', 100)
+            .attr('value', 0)
+            .style('width', '100px')
+            .on('input', () => this.onFiltersChange());
+
+        rangeDiv.append('span')
+            .attr('id', 'popularity-display')
+            .text('0 - 100');
+
+        rangeDiv.append('input')
+            .attr('type', 'range')
+            .attr('id', 'popularity-max')
+            .attr('min', 0)
+            .attr('max', 100)
+            .attr('value', 100)
+            .style('width', '100px')
+            .on('input', () => this.onFiltersChange());
+    }
+
+    // Gestionnaire de changement de filtres
+    private onFiltersChange(): void {
+        // Récupérer les valeurs des filtres
+        const genreSelect = d3.select('.filters-section select').node() as HTMLSelectElement;
+        const selectedGenres = Array.from(genreSelect.selectedOptions).map(option => option.value);
+
+        const yearMin = +(d3.select('#year-min').node() as HTMLInputElement).value;
+        const yearMax = +(d3.select('#year-max').node() as HTMLInputElement).value;
+
+        const popMin = +(d3.select('#popularity-min').node() as HTMLInputElement).value;
+        const popMax = +(d3.select('#popularity-max').node() as HTMLInputElement).value;
+
+        // Mettre à jour l'affichage de la popularité
+        d3.select('#popularity-display').text(`${popMin} - ${popMax}`);
+
+        // Construire les filtres
+        this.currentFilters = {
+            genres: selectedGenres.length > 0 ? selectedGenres : undefined,
+            yearRange: [yearMin, yearMax],
+            popularityRange: [popMin, popMax]
+        };
+
+        // Appliquer les filtres
+        this.applyFilters();
+    }
+
+    // Application des filtres
+    private applyFilters(): void {
+        this.filteredTracks = DataUtils.filterTracks(this.allTracks, this.currentFilters);
+
+        console.log(`🔍 ${this.filteredTracks.length} pistes après filtrage`);
+
+        // Mettre à jour les graphiques
+        this.updateCharts();
+    }
+
+    // Mise à jour des graphiques
+    private updateCharts(): void {
+        const genreChart = this.charts.get('genre');
+        if (genreChart) {
+            const genreData = DataUtils.aggregateByGenre(this.filteredTracks);
+            genreChart.update(genreData);
+        }
+
+        const scatterChart = this.charts.get('scatter');
+        if (scatterChart) {
+            const scatterData = this.filteredTracks.map(track => ({
+                x: track.energy,
+                y: track.danceability,
+                label: track.track_name,
+                genre: track.genre
+            }));
+            scatterChart.update(scatterData);
+        }
+
+        // TODO: Mettre à jour les autres graphiques
+    }
+
+    // Affichage d'erreur
+    private showError(message: string): void {
+        const container = d3.select('#dashboard-container') || d3.select('body');
+
+        container.append('div')
+            .style('color', 'red')
+            .style('padding', '20px')
+            .style('text-align', 'center')
+            .text(`❌ ${message}`);
+    }
+
+    // Méthodes publiques
+    public refresh(): void {
+        this.applyFilters();
+    }
+
+    public resetFilters(): void {
+        this.currentFilters = {};
+        this.filteredTracks = [...this.allTracks];
+        this.updateCharts();
+    }
 }

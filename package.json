@@ -4,13 +4,14 @@
     "description": "Un projet de visualisation d'informations utilisant D3.js avec Node.js et TypeScript",
     "main": "dist/index.js",
     "scripts": {
-        "build": "tsc && npm run copy-js",
-        "copy-js": "copy dist\\index.js public\\index.js",
-        "dev": "ts-node src/index.ts",
-        "start": "node dist/index.js",
-        "serve": "http-server public -p 3000 -o",
-        "watch": "tsc --watch"
-    },
+            "build": "tsc && npm run copy-assets",
+            "copy-assets": "copy public\\*.html dist\\ && copy public\\*.css dist\\ && copy public\\*.csv dist\\ && copy public\\*.json dist\\",
+            "dev": "ts-node src/index.ts",
+            "start": "node dist/index.js",
+            "serve": "npm run build && http-server dist -p 3000 -o",
+            "watch": "tsc --watch",
+            "test": "ts-node test/runner.ts"
+        },
     "keywords": [
         "d3.js",
         "typescript",

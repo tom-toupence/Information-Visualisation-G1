@@ -1,11 +1,12 @@
-import { ScatterData } from '../types';
+import * as d3 from 'd3';
+import { ScatterData } from '../types/index.js';
 
 export interface MappedScatterData {
     id: string;
     x: number;  // danceability
     y: number;  // energy  
-    size: number; // popularity
-    color: string; // genre
+    size: number; // tempo (taille du cercle)
+    color: string; // popularity (couleur)
     label: string; // track info
     metadata: {
         track_name: string;
@@ -14,6 +15,8 @@ export interface MappedScatterData {
         popularity: number;
         danceability: number;
         energy: number;
+        valence?: number;
+        tempo?: number;
     };
 }
 
@@ -25,14 +28,15 @@ export class ScatterMapper {
      * @returns Données mappées pour D3
      */
     mapForVisualization(scatterData: ScatterData[]): MappedScatterData[] {
-        const colorScale = this.createColorScale(scatterData);
+        const colorScale = this.createPopularityColorScale();
+        const sizeScale = this.createTempoSizeScale(scatterData);
         
         return scatterData.map((item, index) => ({
             id: `track-${index}`,
-            x: item.danceability * 100, // Convertir en 0-100 pour plus de lisibilité
-            y: item.energy * 100,
-            size: this.mapPopularityToSize(item.popularity),
-            color: colorScale(item.genre ?? ''),
+            x: item.danceability, // Garder entre 0-1 pour D3
+            y: item.energy,        // Garder entre 0-1 pour D3
+            size: sizeScale(item.tempo ?? 120), // Taille basée sur tempo
+            color: colorScale(item.popularity), // Couleur basée sur popularité
             label: `${item.track_name ?? ''} - ${item.artist_name ?? ''}`,
             metadata: {
                 track_name: item.track_name ?? '',
@@ -40,35 +44,47 @@ export class ScatterMapper {
                 genre: item.genre ?? '',
                 popularity: item.popularity,
                 danceability: item.danceability,
-                energy: item.energy
+                energy: item.energy,
+                valence: item.valence,
+                tempo: item.tempo
             }
         }));
     }
 
     /**
-     * Crée une échelle de couleurs pour les genres
+     * Crée une échelle de couleurs basée sur la popularité
+     * Dégradé : bleu foncé (faible) -> violet -> vert -> jaune (haute) - Viridis
      */
-    private createColorScale(data: ScatterData[]): (genre: string) => string {
-        const genres = [...new Set(data.map(d => d.genre))];
-        const colors = [
-            '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7',
-            '#DDA0DD', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E9'
-        ];
-        
-        const colorMap = new Map();
-        genres.forEach((genre, index) => {
-            colorMap.set(genre, colors[index % colors.length]);
-        });
-        
-        return (genre: string) => colorMap.get(genre) || '#999999';
+    createPopularityColorScale(): (popularity: number) => string {
+        return d3.scaleSequential()
+            .domain([0, 100])
+            .interpolator(d3.interpolateViridis) as any;
     }
 
     /**
-     * Mappe la popularité à une taille de cercle
+     * Crée une échelle de taille basée sur le tempo
+     * @param data Données pour calculer le domaine du tempo
      */
-    private mapPopularityToSize(popularity: number): number {
-        // Popularité de 0-100 -> Taille de 3-15 pixels
-        return Math.max(3, Math.min(15, (popularity / 100) * 12 + 3));
+    private createTempoSizeScale(data: ScatterData[]): (tempo: number) => number {
+        const tempos = data.map(d => d.tempo ?? 120);
+        const maxTempo = Math.max(...tempos);
+        
+        return d3.scaleSqrt()
+            .domain([0, maxTempo])
+            .range([2, 12]) as any;
+    }
+
+    /**
+     * Génère les données pour la légende de popularité
+     */
+    generatePopularityLegend(): Array<{ value: number; color: string }> {
+        const colorScale = this.createPopularityColorScale();
+        const legendSteps = [0, 25, 50, 75, 100];
+        
+        return legendSteps.map(value => ({
+            value,
+            color: colorScale(value)
+        }));
     }
 
     /**

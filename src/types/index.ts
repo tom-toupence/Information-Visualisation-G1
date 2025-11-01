@@ -59,3 +59,14 @@ export interface FilterOptions {
     popularityRange?: [number, number];
     energyRange?: [number, number];
 }
+
+export interface ScatterData {
+    danceability: number;
+    popularity: number;
+    genre: string;
+    energy: number;
+    track_name: string;
+    artist_name: string;
+    valence?: number;
+    tempo?: number;
+}

@@ -1,114 +1,64 @@
-import * as d3 from 'd3';
-import { MappedScatterData } from '../mappers/ScatterMapper.js';
-import { SpotifyTrack } from '../types/index.js';
+// ============================================================================
+// SCATTER CHART - Visualisation D3 avec brush
+// ============================================================================
 
-export class ScatterChart {
-    private svg: d3.Selection<SVGSVGElement, unknown, HTMLElement, any>;
-    private width: number;
-    private height: number;
-    private margin = { top: 20, right: 20, bottom: 40, left: 40 };
-    private containerId: string;
-    private data: MappedScatterData[] = [];
-    private options: any;
-
-    constructor(containerId: string, options: {width?: number, height?: number, xLabel?: string, yLabel?: string} = {}) {
+class ScatterChart {
+    constructor(containerId, options = {}) {
         this.containerId = containerId;
-        this.options = options;
-        const width = options.width || 800;
-        const height = options.height || 600;
+        this.width = options.width || 900;
+        this.height = options.height || 600;
+        this.margin = { top: 20, right: 20, bottom: 60, left: 60 };
+        this.data = [];
         
-        this.width = width - this.margin.left - this.margin.right;
-        this.height = height - this.margin.top - this.margin.bottom;
+        // Dimensions du graphique
+        this.innerWidth = this.width - this.margin.left - this.margin.right;
+        this.innerHeight = this.height - this.margin.top - this.margin.bottom;
+    }
+
+    /**
+     * Affiche le scatter plot
+     * @param {Array} data - Données mappées à visualiser
+     */
+    visualize(data) {
+        this.data = data;
+        
+        // Supprimer le SVG existant
+        d3.select(`#${this.containerId}`).select('svg').remove();
 
         // Créer le SVG
-        this.svg = d3.select(`#${containerId}`)
+        const svg = d3.select(`#${this.containerId}`)
             .append('svg')
-            .attr('width', width)
-            .attr('height', height);
-    }
+            .attr('width', this.width)
+            .attr('height', this.height);
 
-    // Méthode pour définir les données (compatible avec le Dashboard)
-    setData(rawData: Array<{x: number, y: number, label: string, genre: string}>): this {
-        // Convertir les données au format MappedScatterData
-        this.data = rawData.map((track, i) => ({
-            id: `${track.label}-${i}`,
-            label: track.label,
-            x: track.x * 100, // Convertir en pourcentage si nécessaire
-            y: track.y * 100, // Convertir en pourcentage si nécessaire
-            size: 5,
-            color: this.getGenreColor(track.genre),
-            metadata: {
-                track_name: track.label,
-                artist_name: '', // Ajoutez si disponible
-                genre: track.genre,
-                popularity: 0, // Ajoutez si disponible
-                danceability: track.y,
-                energy: track.x
-            }
-        }));
-        return this;
-    }
-
-    // Méthode render (compatible avec le Dashboard)
-    render(): this {
-        this.visualize(this.data);
-        return this;
-    }
-
-    // Méthode update (compatible avec le Dashboard)
-    update(rawData: Array<{x: number, y: number, label: string, genre: string}>): this {
-        this.setData(rawData);
-        this.render();
-        return this;
-    }
-
-    // Fonction pour obtenir une couleur par genre
-    private getGenreColor(genre: string): string {
-        const colors = {
-            'pop': '#ff6b6b',
-            'rock': '#4ecdc4', 
-            'hip hop': '#45b7d1',
-            'jazz': '#96ceb4',
-            'classical': '#ffeaa7',
-            'electronic': '#dda0dd',
-            'country': '#98d8c8',
-            'r&b': '#fdcb6e'
-        };
-        return colors[genre.toLowerCase() as keyof typeof colors] || '#95a5a6';
-    }
-
-    visualize(data: MappedScatterData[]): void {
-        this.svg.selectAll('*').remove();
-        this.data = data;
-
-        // Créer le groupe principal
-        const g = this.svg.append('g')
+        // Groupe principal
+        const g = svg.append('g')
             .attr('transform', `translate(${this.margin.left},${this.margin.top})`);
 
-        // Créer les échelles (0-1 pour danceability et energy)
+        // Échelles
         const xScale = d3.scaleLinear()
             .domain([0, 1])
-            .range([0, this.width])
+            .range([0, this.innerWidth])
             .nice();
 
         const yScale = d3.scaleLinear()
             .domain([0, 1])
-            .range([this.height, 0])
+            .range([this.innerHeight, 0])
             .nice();
 
-        // Créer les axes avec style
+        // Axes
         const xAxis = d3.axisBottom(xScale).ticks(10);
         const yAxis = d3.axisLeft(yScale).ticks(10);
 
-        // Ajouter l'axe X
+        // Axe X
         g.append('g')
             .attr('class', 'x-axis')
-            .attr('transform', `translate(0,${this.height})`)
+            .attr('transform', `translate(0,${this.innerHeight})`)
             .call(xAxis)
             .selectAll('text')
             .style('fill', '#e2e2e2');
 
-        // Ajouter l'axe Y
+        // Axe Y
         g.append('g')
             .attr('class', 'y-axis')
             .call(yAxis)
@@ -119,27 +69,27 @@ export class ScatterChart {
         g.selectAll('.x-axis path, .y-axis path, .x-axis line, .y-axis line')
             .style('stroke', '#535353');
 
-        // Labels des axes avec meilleure visibilité
+        // Labels
         g.append('text')
-            .attr('transform', `translate(${this.width / 2}, ${this.height + 35})`)
+            .attr('transform', `translate(${this.innerWidth / 2}, ${this.innerHeight + 45})`)
             .style('text-anchor', 'middle')
             .style('fill', '#e2e2e2')
             .style('font-size', '14px')
             .style('font-weight', '600')
-            .text(this.options.xLabel || 'Danceability →');
+            .text('Danceability →');
 
         g.append('text')
             .attr('transform', 'rotate(-90)')
-            .attr('y', 0 - this.margin.left + 5)
-            .attr('x', 0 - (this.height / 2))
+            .attr('y', 0 - this.margin.left + 10)
+            .attr('x', 0 - (this.innerHeight / 2))
             .attr('dy', '1em')
             .style('text-anchor', 'middle')
             .style('fill', '#e2e2e2')
             .style('font-size', '14px')
             .style('font-weight', '600')
-            .text(this.options.yLabel || '← Energy');
+            .text('← Energy');
 
-        // Créer les cercles (gris par défaut, colorés au brush)
+        // Créer les cercles (gris par défaut)
         const circles = g.selectAll('.scatter-dot')
             .data(data)
             .enter()
@@ -148,11 +98,11 @@ export class ScatterChart {
             .attr('cx', d => xScale(d.x))
             .attr('cy', d => yScale(d.y))
             .attr('r', 0)
-            .attr('fill', '#666') // Gris par défaut
+            .attr('fill', '#666')
             .attr('opacity', 0)
             .attr('stroke', '#444')
             .attr('stroke-width', 0.5)
-            .attr('data-color', d => d.color); // Stocker la couleur pour le brush
+            .attr('data-color', d => d.color);
 
         // Animation d'apparition
         circles.transition()
@@ -161,39 +111,38 @@ export class ScatterChart {
             .attr('r', d => d.size)
             .attr('opacity', 0.4);
 
-        // Ajouter l'interactivité (hover)
-        this.addInteractivity(circles);
-
-        // Ajouter le brush
+        // Ajouter interactivité
+        this.addTooltip(circles);
         this.addBrush(g, circles, xScale, yScale, data);
 
         console.log(`📊 Visualisation créée avec ${data.length} points`);
     }
 
-    // Tooltip et interactions
-    private addInteractivity(circles: d3.Selection<SVGCircleElement, MappedScatterData, SVGGElement, unknown>): void {
-        // Créer le tooltip
+    /**
+     * Ajoute le tooltip au survol
+     * @param {d3.Selection} circles - Sélection des cercles
+     */
+    addTooltip(circles) {
         const tooltip = d3.select('body').append('div')
             .attr('class', 'scatter-tooltip')
             .style('position', 'absolute')
-            .style('background', 'rgba(0, 0, 0, 0.8)')
+            .style('background', 'rgba(0, 0, 0, 0.9)')
             .style('color', 'white')
-            .style('padding', '8px')
-            .style('border-radius', '4px')
+            .style('padding', '12px')
+            .style('border-radius', '6px')
             .style('font-size', '12px')
             .style('pointer-events', 'none')
-            .style('opacity', 0);
+            .style('opacity', 0)
+            .style('z-index', '10000');
 
         circles
             .on('mouseover', (event, d) => {
-                // Agrandir le cercle
                 d3.select(event.currentTarget)
                     .transition()
                     .duration(100)
                     .attr('r', d.size * 1.5)
                     .attr('opacity', 1);
 
-                // Afficher le tooltip
                 tooltip.transition()
                     .duration(200)
                     .style('opacity', 1);
@@ -217,14 +166,12 @@ export class ScatterChart {
                     .style('top', (event.pageY - 10) + 'px');
             })
             .on('mouseout', (event, d) => {
-                // Remettre la taille normale
                 d3.select(event.currentTarget)
                     .transition()
                     .duration(100)
                     .attr('r', d.size)
                     .attr('opacity', 0.7);
 
-                // Cacher le tooltip
                 tooltip.transition()
                     .duration(500)
                     .style('opacity', 0);
@@ -232,95 +179,15 @@ export class ScatterChart {
     }
 
     /**
-     * Ajoute une légende pour la popularité (dégradé de couleur)
+     * Ajoute le brush pour la sélection interactive
+     * @param {d3.Selection} g - Groupe SVG principal
+     * @param {d3.Selection} circles - Sélection des cercles
+     * @param {Function} xScale - Échelle X
+     * @param {Function} yScale - Échelle Y
+     * @param {Array} data - Données complètes
      */
-    addPopularityLegend(): void {
-        // Supprimer la légende existante
-        this.svg.selectAll('.popularity-legend').remove();
-        
-        const legendWidth = 20;
-        const legendHeight = 200;
-        const legendX = this.width + this.margin.left + 40;
-        const legendY = this.margin.top + 50;
-        
-        // Créer le dégradé
-        const defs = this.svg.select('defs').empty() ? this.svg.append('defs') : this.svg.select('defs');
-        
-        defs.select('#popularity-gradient').remove();
-        
-        const linearGradient = defs.append('linearGradient')
-            .attr('id', 'popularity-gradient')
-            .attr('x1', '0%')
-            .attr('y1', '100%')
-            .attr('x2', '0%')
-            .attr('y2', '0%');
-
-        // Ajouter les stops du dégradé (Viridis)
-        const steps = [0, 25, 50, 75, 100];
-        steps.forEach(step => {
-            linearGradient.append('stop')
-                .attr('offset', `${step}%`)
-                .attr('stop-color', d3.interpolateViridis(step / 100));
-        });
-
-        const legend = this.svg.append('g')
-            .attr('class', 'popularity-legend')
-            .attr('transform', `translate(${legendX}, ${legendY})`);
-
-        // Titre de la légende
-        legend.append('text')
-            .attr('x', 0)
-            .attr('y', -20)
-            .style('font-size', '12px')
-            .style('font-weight', '600')
-            .style('fill', '#e2e2e2')
-            .text('Popularité');
-
-        // Rectangle avec le dégradé
-        legend.append('rect')
-            .attr('x', 0)
-            .attr('y', 0)
-            .attr('width', legendWidth)
-            .attr('height', legendHeight)
-            .style('fill', 'url(#popularity-gradient)')
-            .style('stroke', '#555')
-            .style('stroke-width', '1px');
-
-        // Échelle pour les labels
-        const legendScale = d3.scaleLinear()
-            .domain([0, 100])
-            .range([legendHeight, 0]);
-
-        const legendAxis = d3.axisRight(legendScale)
-            .ticks(5)
-            .tickFormat(d => `${d}`);
-
-        legend.append('g')
-            .attr('class', 'legend-axis')
-            .attr('transform', `translate(${legendWidth}, 0)`)
-            .call(legendAxis)
-            .selectAll('text')
-            .style('fill', '#e2e2e2')
-            .style('font-size', '11px');
-
-        legend.select('.legend-axis .domain')
-            .style('stroke', '#555');
-
-        legend.select('.legend-axis').selectAll('.tick line')
-            .style('stroke', '#555');
-    }
-
-    /**
-     * Ajoute un brush pour la sélection interactive
-     */
-    private addBrush(
-        g: d3.Selection<SVGGElement, unknown, HTMLElement, any>,
-        circles: d3.Selection<SVGCircleElement, MappedScatterData, SVGGElement, unknown>,
-        xScale: d3.ScaleLinear<number, number>,
-        yScale: d3.ScaleLinear<number, number>,
-        data: MappedScatterData[]
-    ): void {
-        // Créer le panel de statistiques (caché par défaut)
+    addBrush(g, circles, xScale, yScale, data) {
+        // Créer le panel de stats (caché par défaut)
         const statsPanel = d3.select('body').append('div')
             .attr('class', 'brush-stats-panel')
             .style('position', 'fixed')
@@ -339,12 +206,12 @@ export class ScatterChart {
 
         // Créer le brush
         const brush = d3.brush()
-            .extent([[0, 0], [this.width, this.height]])
+            .extent([[0, 0], [this.innerWidth, this.innerHeight]])
             .on('start brush end', (event) => {
                 const selection = event.selection;
                 
                 if (!selection) {
-                    // Aucune sélection : remettre tous les points en gris
+                    // Pas de sélection : tout en gris
                     circles
                         .attr('fill', '#666')
                         .attr('opacity', 0.4)
@@ -355,9 +222,7 @@ export class ScatterChart {
                 }
 
                 const [[x0, y0], [x1, y1]] = selection;
-                
-                // Sélectionner les points dans le brush
-                let selectedData: MappedScatterData[] = [];
+                const selectedData = [];
                 
                 circles.each(function(d) {
                     const cx = xScale(d.x);
@@ -366,14 +231,14 @@ export class ScatterChart {
                     
                     if (isSelected) {
                         selectedData.push(d);
-                        // Colorer selon la popularité + highlight
+                        // Colorer selon popularité
                         d3.select(this)
                             .attr('fill', d.color)
                             .attr('opacity', 0.9)
                             .attr('stroke', '#fff')
                             .attr('stroke-width', 1.5);
                     } else {
-                        // Remettre en gris les points non sélectionnés
+                        // Gris pour non sélectionnés
                         d3.select(this)
                             .attr('fill', '#666')
                             .attr('opacity', 0.2)
@@ -381,7 +246,7 @@ export class ScatterChart {
                     }
                 });
 
-                // Afficher les statistiques
+                // Afficher les stats
                 if (selectedData.length > 0) {
                     this.updateStatsPanel(statsPanel, selectedData, data.length);
                 }
@@ -401,27 +266,25 @@ export class ScatterChart {
     }
 
     /**
-     * Met à jour le panel de statistiques avec les données sélectionnées
+     * Met à jour le panneau de statistiques
+     * @param {d3.Selection} panel - Panel de stats
+     * @param {Array} selectedData - Données sélectionnées
+     * @param {number} totalCount - Nombre total de points
      */
-    private updateStatsPanel(
-        panel: d3.Selection<HTMLDivElement, unknown, HTMLElement, any>,
-        selectedData: MappedScatterData[],
-        totalCount: number
-    ): void {
+    updateStatsPanel(panel, selectedData, totalCount) {
         const count = selectedData.length;
         const avgPopularity = d3.mean(selectedData, d => d.metadata.popularity) || 0;
         const avgEnergy = d3.mean(selectedData, d => d.metadata.energy) || 0;
         const avgDanceability = d3.mean(selectedData, d => d.metadata.danceability) || 0;
         const avgTempo = d3.mean(selectedData, d => d.metadata.tempo || 0) || 0;
 
-        // Compter les artistes
-        const artistCounts = new Map<string, number>();
+        // Top artistes
+        const artistCounts = new Map();
         selectedData.forEach(d => {
             const artist = d.metadata.artist_name;
             artistCounts.set(artist, (artistCounts.get(artist) || 0) + 1);
         });
 
-        // Top 3 artistes
         const topArtists = Array.from(artistCounts.entries())
             .sort((a, b) => b[1] - a[1])
             .slice(0, 3);

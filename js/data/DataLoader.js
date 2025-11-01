@@ -16,7 +16,7 @@ export class DataLoader {
         /** @type {Map<string, any>} */
         this.cache = new Map();
         /** @type {string} */
-        this.genreTreeFileName = 'data/indexByGenreSongs.json';
+        this.genreTreeFileName = 'assets/indexByGenreSongs.json';
     }
 
     /**
@@ -41,7 +41,7 @@ export class DataLoader {
             return this.cache.get(cacheKey);
         }
 
-        const rawData = await d3.csv('data/spotify_data.csv');
+        const rawData = await d3.csv('assets/spotify_data.csv');
         const spotifyTracks = this.parseSpotifyData(rawData);
 
         this.cache.set(cacheKey, spotifyTracks);
@@ -60,7 +60,7 @@ export class DataLoader {
             return this.cache.get(cacheKey);
         }
 
-        const tree = await d3.json('data/music_genres_tree.json');
+        const tree = await d3.json('assets/music_genres_tree.json');
 
         // @ts-ignore
         if (!tree || typeof tree !== 'object' || typeof tree.name !== 'string') {

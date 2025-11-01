@@ -60,30 +60,35 @@
         </div>
     </main>
 
-    <!-- Script pour la page chart -->
+    <!-- Script pour la visualisation de l'arbre des genres -->
     <script type="module">
-        import { DataLoader } from './js/data/DataLoader.js';
+        import { TreeVisualization } from './js/TreeVisualization.js';
 
-        // Placeholder pour le code JavaScript du chart
         document.addEventListener('DOMContentLoaded', async function () {
-            console.log('Page Chart chargée');
+            console.log('Page Genres Explorer chargée, initialisation de TreeVisualization...');
 
             try {
-                // Utiliser le DataLoader pour charger les données des genres avec chansons
-                const dataLoader = DataLoader.getInstance();
-                const genreTreeData = await dataLoader.loadGenreTreeWithSongs();
-
-                // Afficher les noms des enfants du premier niveau de l'arbre des genres
-                console.log('Enfants du premier niveau de l\'arbre des genres :');
-                if (genreTreeData && genreTreeData.children) {
-                    genreTreeData.children.forEach(child => {
-                        console.log('- ' + child.name);
-                    });
-                } else {
-                    console.log('Aucun enfant trouvé dans l\'arbre des genres');
+                // Créer une instance de TreeVisualization
+                const treeViz = new TreeVisualization();
+                
+                // Initialiser et charger les données (cela va afficher les enfants du premier niveau)
+                await treeViz.initialize();
+                
+                // Créer une visualisation basique dans le conteneur chart-area
+                treeViz.createVisualization('#chart-area');
+                
+                // Afficher quelques statistiques supplémentaires
+                const stats = treeViz.getTreeStatistics();
+                if (stats) {
+                    console.log('=== STATISTIQUES DE L\'ARBRE ===');
+                    console.log(`Nombre total de nœuds: ${stats.totalNodes}`);
+                    console.log(`Nombre total de chansons: ${stats.totalSongs}`);
+                    console.log(`Profondeur maximale: ${stats.maxDepth}`);
+                    console.log('===================================');
                 }
+                
             } catch (error) {
-                console.error('Erreur lors du chargement des données :', error);
+                console.error('Erreur lors de l\'initialisation de TreeVisualization :', error);
             }
         });
     </script>

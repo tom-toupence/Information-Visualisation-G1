@@ -663,30 +663,246 @@ export class TreeVisualization {
      * @private
      */
     createInfoSections(container, song, isComplete) {
-        // Section des informations techniques de la musique
-        const audioFeatures = ['danceability', 'energy', 'valence', 'tempo', 'loudness', 'acousticness', 'instrumentalness', 'liveness', 'speechiness'];
+        // Section aperçu (toujours visible)
+        const overviewFields = ['danceability', 'energy', 'popularity', 'speechiness', 'year'];
+        if (overviewFields.some(key => song[key] !== undefined)) {
+            this.createOverviewSection(container, overviewFields, song);
+        }
+
+        // Sections collapsibles
+        const audioFeatures = ['valence', 'tempo', 'loudness', 'acousticness', 'instrumentalness', 'liveness'];
         const technicalInfo = ['key', 'mode', 'time_signature', 'duration_ms'];
-        const generalInfo = ['popularity', 'year', 'genre', 'track_id'];
+        const generalInfo = ['genre', 'track_id'];
 
         if (audioFeatures.some(key => song[key] !== undefined)) {
-            this.createInfoSection(container, 'Caractéristiques Audio', audioFeatures, song, true);
+            this.createCollapsibleSection(container, 'Caractéristiques Audio', audioFeatures, song, true);
         }
 
         if (technicalInfo.some(key => song[key] !== undefined)) {
-            this.createInfoSection(container, 'Informations Techniques', technicalInfo, song, false);
+            this.createCollapsibleSection(container, 'Informations Techniques', technicalInfo, song, false);
         }
 
         if (generalInfo.some(key => song[key] !== undefined)) {
-            this.createInfoSection(container, 'Informations Générales', generalInfo, song, false);
+            this.createCollapsibleSection(container, 'Informations Générales', generalInfo, song, false);
         }
 
         // Afficher les propriétés restantes s'il y en a
-        const displayedKeys = ['track_name', 'artist_name', ...audioFeatures, ...technicalInfo, ...generalInfo];
+        const displayedKeys = ['track_name', 'artist_name', ...overviewFields, ...audioFeatures, ...technicalInfo, ...generalInfo];
         const remainingKeys = Object.keys(song).filter(key => !displayedKeys.includes(key));
         
         if (remainingKeys.length > 0) {
-            this.createInfoSection(container, 'Autres Propriétés', remainingKeys, song, false);
+            this.createCollapsibleSection(container, 'Autres Propriétés', remainingKeys, song, false);
         }
+    }
+
+    /**
+     * Crée la section aperçu (toujours visible)
+     * @param {HTMLElement} container - Le conteneur parent
+     * @param {string[]} keys - Les clés à afficher
+     * @param {any} song - Les données de la chanson
+     * @private
+     */
+    createOverviewSection(container, keys, song) {
+        const availableKeys = keys.filter(key => song[key] !== undefined && song[key] !== null);
+        
+        if (availableKeys.length === 0) return;
+
+        const section = document.createElement('div');
+        section.style.cssText = `
+            margin: 12px 0;
+            padding: 12px;
+            background: rgba(136, 192, 208, 0.2);
+            border-radius: 8px;
+            border-left: 4px solid #88c0d0;
+        `;
+
+        const sectionTitle = document.createElement('h3');
+        sectionTitle.style.cssText = `
+            color: #88c0d0;
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            font-weight: 600;
+        `;
+        sectionTitle.textContent = 'Aperçu';
+
+        const infoGrid = document.createElement('div');
+        infoGrid.style.cssText = `
+            display: grid;
+            gap: 8px;
+            font-size: 13px;
+        `;
+
+        availableKeys.forEach(key => {
+            const infoItem = document.createElement('div');
+            infoItem.style.cssText = `
+                display: flex;
+                justify-content: space-between;
+                padding: 6px 0;
+                border-bottom: 1px solid rgba(128, 139, 150, 0.2);
+            `;
+
+            const keyElement = document.createElement('span');
+            keyElement.textContent = this.formatPropertyName(key) + ':';
+            keyElement.style.cssText = 'color: #d8dee9; font-weight: 500;';
+
+            const valueElement = document.createElement('span');
+            const rawValue = song[key];
+            let displayValue;
+
+            // Logique de formatage spécifique pour l'aperçu
+            if ((key === 'danceability' || key === 'energy') && typeof rawValue === 'number' && rawValue <= 1) {
+                displayValue = Math.round(rawValue * 100) + '%';
+            } else if (key === 'speechiness' && typeof rawValue === 'number' && rawValue <= 1) {
+                displayValue = Math.round(rawValue * 100) + '%';
+            } else {
+                displayValue = rawValue;
+            }
+
+            valueElement.textContent = displayValue;
+            valueElement.style.cssText = 'color: #eceff4; font-weight: 400;';
+
+            infoItem.appendChild(keyElement);
+            infoItem.appendChild(valueElement);
+            infoGrid.appendChild(infoItem);
+        });
+
+        section.appendChild(sectionTitle);
+        section.appendChild(infoGrid);
+        container.appendChild(section);
+    }
+
+    /**
+     * Crée une section d'informations collapsible
+     * @param {HTMLElement} container - Le conteneur parent
+     * @param {string} title - Le titre de la section
+     * @param {string[]} keys - Les clés à afficher
+     * @param {any} song - Les données de la chanson
+     * @param {boolean} isPercentage - Si les valeurs doivent être affichées en pourcentage
+     * @private
+     */
+    createCollapsibleSection(container, title, keys, song, isPercentage = false) {
+        const availableKeys = keys.filter(key => song[key] !== undefined && song[key] !== null);
+        
+        if (availableKeys.length === 0) return;
+
+        const section = document.createElement('div');
+        section.style.cssText = `
+            margin: 12px 0;
+            background: rgba(67, 76, 94, 0.4);
+            border-radius: 8px;
+            border-left: 4px solid #5e81ac;
+            overflow: hidden;
+        `;
+
+        const header = document.createElement('div');
+        header.style.cssText = `
+            padding: 12px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(67, 76, 94, 0.2);
+            transition: background 0.2s ease;
+        `;
+
+        const sectionTitle = document.createElement('h3');
+        sectionTitle.style.cssText = `
+            color: #eceff4;
+            margin: 0;
+            font-size: 14px;
+            font-weight: 600;
+        `;
+        sectionTitle.textContent = title;
+
+        const toggleIcon = document.createElement('span');
+        toggleIcon.style.cssText = `
+            color: #81a1c1;
+            font-size: 12px;
+            font-weight: bold;
+            transition: transform 0.2s ease;
+        `;
+        toggleIcon.textContent = '▼';
+
+        const content = document.createElement('div');
+        content.style.cssText = `
+            padding: 0 12px 12px 12px;
+            display: block;
+        `;
+
+        const infoGrid = document.createElement('div');
+        infoGrid.style.cssText = `
+            display: grid;
+            gap: 8px;
+            font-size: 13px;
+        `;
+
+        availableKeys.forEach(key => {
+            const infoItem = document.createElement('div');
+            infoItem.style.cssText = `
+                display: flex;
+                justify-content: space-between;
+                padding: 6px 0;
+                border-bottom: 1px solid rgba(128, 139, 150, 0.2);
+            `;
+
+            const keyElement = document.createElement('span');
+            keyElement.textContent = this.formatPropertyName(key) + ':';
+            keyElement.style.cssText = 'color: #d8dee9; font-weight: 500;';
+
+            const valueElement = document.createElement('span');
+            const rawValue = song[key];
+            let displayValue;
+
+            if (isPercentage && typeof rawValue === 'number' && rawValue <= 1) {
+                displayValue = Math.round(rawValue * 100) + '%';
+            } else if (key === 'duration_ms') {
+                displayValue = this.formatDuration(rawValue);
+            } else if (key === 'key') {
+                displayValue = this.formatMusicalKey(rawValue);
+            } else if (key === 'mode') {
+                displayValue = rawValue === 1 ? 'Majeur' : 'Mineur';
+            } else {
+                displayValue = rawValue;
+            }
+
+            valueElement.textContent = displayValue;
+            valueElement.style.cssText = 'color: #eceff4; font-weight: 400;';
+
+            infoItem.appendChild(keyElement);
+            infoItem.appendChild(valueElement);
+            infoGrid.appendChild(infoItem);
+        });
+
+        content.appendChild(infoGrid);
+
+        // Événement de clic pour collapse/expand
+        let isCollapsed = false;
+        header.addEventListener('click', () => {
+            isCollapsed = !isCollapsed;
+            if (isCollapsed) {
+                content.style.display = 'none';
+                toggleIcon.style.transform = 'rotate(-90deg)';
+                toggleIcon.textContent = '▶';
+            } else {
+                content.style.display = 'block';
+                toggleIcon.style.transform = 'rotate(0deg)';
+                toggleIcon.textContent = '▼';
+            }
+        });
+
+        // Effet hover sur l'en-tête
+        header.addEventListener('mouseenter', () => {
+            header.style.background = 'rgba(67, 76, 94, 0.6)';
+        });
+        header.addEventListener('mouseleave', () => {
+            header.style.background = 'rgba(67, 76, 94, 0.2)';
+        });
+
+        header.appendChild(sectionTitle);
+        header.appendChild(toggleIcon);
+        section.appendChild(header);
+        section.appendChild(content);
+        container.appendChild(section);
     }
 
     /**

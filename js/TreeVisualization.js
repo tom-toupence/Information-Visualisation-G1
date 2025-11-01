@@ -491,10 +491,10 @@ export class TreeVisualization {
         try {
             // Récupérer les propriétés complètes via DataLoader
             const fullTrackData = await this.dataLoader.getProps(songNode.songData.track_id);
-            
+
             // Utiliser les données complètes si disponibles, sinon les données de base
             const song = fullTrackData || songNode.songData;
-            
+
             // Afficher les informations dans le panneau
             this.displaySongInfo(song, !!fullTrackData);
         } catch (error) {
@@ -664,7 +664,7 @@ export class TreeVisualization {
      */
     createInfoSections(container, song, isComplete) {
         // Section aperçu (toujours visible)
-        const overviewFields = ['danceability', 'energy', 'popularity', 'speechiness', 'year'];
+        const overviewFields = ['danceability', 'energy', 'speechiness', 'popularity', 'year'];
         if (overviewFields.some(key => song[key] !== undefined)) {
             this.createOverviewSection(container, overviewFields, song);
         }
@@ -689,7 +689,7 @@ export class TreeVisualization {
         // Afficher les propriétés restantes s'il y en a
         const displayedKeys = ['track_name', 'artist_name', ...overviewFields, ...audioFeatures, ...technicalInfo, ...generalInfo];
         const remainingKeys = Object.keys(song).filter(key => !displayedKeys.includes(key));
-        
+
         if (remainingKeys.length > 0) {
             this.createCollapsibleSection(container, 'Autres Propriétés', remainingKeys, song, false);
         }
@@ -704,7 +704,7 @@ export class TreeVisualization {
      */
     createOverviewSection(container, keys, song) {
         const availableKeys = keys.filter(key => song[key] !== undefined && song[key] !== null);
-        
+
         if (availableKeys.length === 0) return;
 
         const section = document.createElement('div');
@@ -734,35 +734,80 @@ export class TreeVisualization {
 
         availableKeys.forEach(key => {
             const infoItem = document.createElement('div');
-            infoItem.style.cssText = `
-                display: flex;
-                justify-content: space-between;
-                padding: 6px 0;
-                border-bottom: 1px solid rgba(128, 139, 150, 0.2);
-            `;
-
-            const keyElement = document.createElement('span');
-            keyElement.textContent = this.formatPropertyName(key) + ':';
-            keyElement.style.cssText = 'color: #d8dee9; font-weight: 500;';
-
-            const valueElement = document.createElement('span');
             const rawValue = song[key];
-            let displayValue;
+            const isPercentageField = ['danceability', 'energy', 'speechiness'].includes(key);
 
-            // Logique de formatage spécifique pour l'aperçu
-            if ((key === 'danceability' || key === 'energy') && typeof rawValue === 'number' && rawValue <= 1) {
-                displayValue = Math.round(rawValue * 100) + '%';
-            } else if (key === 'speechiness' && typeof rawValue === 'number' && rawValue <= 1) {
-                displayValue = Math.round(rawValue * 100) + '%';
+            if (isPercentageField) {
+                // Style pour les champs avec barre de progression
+                infoItem.style.cssText = `
+                    padding: 8px 0;
+                    border-bottom: 1px solid rgba(128, 139, 150, 0.2);
+                `;
+
+                const labelRow = document.createElement('div');
+                labelRow.style.cssText = `
+                    display: flex;
+                    justify-content: space-between;
+                    align-items: center;
+                    margin-bottom: 6px;
+                `;
+
+                const keyElement = document.createElement('span');
+                keyElement.textContent = this.formatPropertyName(key) + ':';
+                keyElement.style.cssText = 'color: #d8dee9; font-weight: 500; font-size: 13px;';
+
+                const percentage = Math.round(rawValue * 100);
+                const valueElement = document.createElement('span');
+                valueElement.textContent = percentage + '%';
+                valueElement.style.cssText = 'color: #eceff4; font-weight: 600; font-size: 13px;';
+
+                labelRow.appendChild(keyElement);
+                labelRow.appendChild(valueElement);
+
+                // Barre de progression
+                const progressBar = document.createElement('div');
+                progressBar.style.cssText = `
+                    width: 100%;
+                    height: 6px;
+                    background: rgba(67, 76, 94, 0.6);
+                    border-radius: 3px;
+                    overflow: hidden;
+                `;
+
+                const progressFill = document.createElement('div');
+                const progressColor = this.getProgressColor(percentage);
+                progressFill.style.cssText = `
+                    height: 100%;
+                    width: ${percentage}%;
+                    background: ${progressColor};
+                    border-radius: 3px;
+                    transition: width 0.3s ease, background 0.3s ease;
+                `;
+
+                progressBar.appendChild(progressFill);
+                infoItem.appendChild(labelRow);
+                infoItem.appendChild(progressBar);
             } else {
-                displayValue = rawValue;
+                // Style normal pour les autres champs
+                infoItem.style.cssText = `
+                    display: flex;
+                    justify-content: space-between;
+                    padding: 6px 0;
+                    border-bottom: 1px solid rgba(128, 139, 150, 0.2);
+                `;
+
+                const keyElement = document.createElement('span');
+                keyElement.textContent = this.formatPropertyName(key) + ':';
+                keyElement.style.cssText = 'color: #d8dee9; font-weight: 500;';
+
+                const valueElement = document.createElement('span');
+                valueElement.textContent = rawValue;
+                valueElement.style.cssText = 'color: #eceff4; font-weight: 400;';
+
+                infoItem.appendChild(keyElement);
+                infoItem.appendChild(valueElement);
             }
 
-            valueElement.textContent = displayValue;
-            valueElement.style.cssText = 'color: #eceff4; font-weight: 400;';
-
-            infoItem.appendChild(keyElement);
-            infoItem.appendChild(valueElement);
             infoGrid.appendChild(infoItem);
         });
 
@@ -782,7 +827,7 @@ export class TreeVisualization {
      */
     createCollapsibleSection(container, title, keys, song, isPercentage = false) {
         const availableKeys = keys.filter(key => song[key] !== undefined && song[key] !== null);
-        
+
         if (availableKeys.length === 0) return;
 
         const section = document.createElement('div');
@@ -916,7 +961,7 @@ export class TreeVisualization {
      */
     createInfoSection(container, title, keys, song, isPercentage = false) {
         const availableKeys = keys.filter(key => song[key] !== undefined && song[key] !== null);
-        
+
         if (availableKeys.length === 0) return;
 
         const section = document.createElement('div');
@@ -1039,7 +1084,46 @@ export class TreeVisualization {
         return keys[key] || 'Inconnu';
     }
 
+    /**
+     * Calcule la couleur de la barre de progression en fonction du pourcentage
+     * @param {number} percentage - Le pourcentage (0-100)
+     * @returns {string} La couleur CSS (dégradé)
+     * @private
+     */
+    getProgressColor(percentage) {
+        // Normaliser le pourcentage entre 0 et 1
+        const ratio = Math.max(0, Math.min(100, percentage)) / 100;
 
+        // Couleurs de début (vert/bleu) et de fin (rouge)
+        const startColor = { r: 136, g: 192, b: 208 }; // #88c0d0 (bleu clair)
+        const midColor = { r: 235, g: 203, b: 139 };   // #ebcb8b (jaune)
+        const endColor = { r: 191, g: 97, b: 106 };    // #bf616a (rouge)
+
+        let color1, color2, localRatio;
+
+        if (ratio <= 0.5) {
+            // De bleu à jaune (0% à 50%)
+            color1 = startColor;
+            color2 = midColor;
+            localRatio = ratio * 2; // Normaliser entre 0 et 1
+        } else {
+            // De jaune à rouge (50% à 100%)
+            color1 = midColor;
+            color2 = endColor;
+            localRatio = (ratio - 0.5) * 2; // Normaliser entre 0 et 1
+        }
+
+        // Interpolation linéaire des composantes RGB
+        const r = Math.round(color1.r + (color2.r - color1.r) * localRatio);
+        const g = Math.round(color1.g + (color2.g - color1.g) * localRatio);
+        const b = Math.round(color1.b + (color2.b - color1.b) * localRatio);
+
+        // Créer un dégradé subtil pour plus de profondeur
+        const lightColor = `rgb(${Math.min(255, r + 20)}, ${Math.min(255, g + 20)}, ${Math.min(255, b + 20)})`;
+        const darkColor = `rgb(${Math.max(0, r - 20)}, ${Math.max(0, g - 20)}, ${Math.max(0, b - 20)})`;
+
+        return `linear-gradient(90deg, ${lightColor}, ${darkColor})`;
+    }
 
     /**
      * Retourne les données de l'arbre pour utilisation externe

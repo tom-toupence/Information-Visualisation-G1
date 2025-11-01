@@ -210,12 +210,42 @@ export class TreeVisualization {
                 () => 50
             ]);
 
+        // Fonction pour mesurer la largeur du texte d'une chanson
+        const measureSongTextWidth = (songNode, fontSize) => {
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            context.font = `${fontSize}px Arial`;
+
+            const text = songNode.displayName || songNode.name;
+            return context.measureText(text).width;
+        };
+
+        // Fonction pour calculer la taille de police optimale pour une chanson
+        const calculateOptimalFontSize = (songNode, fixedRadius) => {
+            const text = songNode.displayName || songNode.name;
+            const availableWidth = fixedRadius * 1.6; // Largeur utilisable dans le cercle
+
+            // Tester différentes tailles de police
+            for (let fontSize = 14; fontSize >= 6; fontSize--) {
+                const textWidth = measureSongTextWidth(songNode, fontSize);
+
+                // Si le texte rentre avec cette taille de police
+                if (textWidth <= availableWidth) {
+                    return fontSize;
+                }
+            }
+
+            // Taille minimum de sécurité
+            return 6;
+        };
+
         // Fonction pour obtenir le rayon selon le type
         const getRadius = (d) => {
             if (d.type === 'genre') {
                 return radiusScale('genre')(d.songCount);
             } else {
-                return radiusScale('song')();
+                // Chansons : taille fixe
+                return 50;
             }
         };
 
@@ -260,11 +290,12 @@ export class TreeVisualization {
             .attr('dy', '0.35em')
             .style('font-size', d => {
                 const radius = getRadius(d);
-                // Taille de police adaptée : plus grande pour les chansons, proportionnelle pour les genres
                 if (d.type === 'song') {
-                    return Math.max(10, radius / 3) + 'px'; // Plus grande police pour les chansons
+                    // Pour les chansons, calculer la taille optimale pour rentrer dans la bulle fixe
+                    return calculateOptimalFontSize(d, radius) + 'px';
                 } else {
-                    return Math.max(9, radius / 4.5) + 'px'; // Police proportionnelle pour les genres
+                    // Pour les genres, garder la logique existante
+                    return Math.max(9, radius / 4.5) + 'px';
                 }
             })
             .style('font-weight', d => d.type === 'song' ? 'normal' : 'bold') // Texte normal pour les chansons
@@ -280,15 +311,15 @@ export class TreeVisualization {
                 let maxLength;
                 let shouldSplit = false;
 
-                // Ajuster la longueur du texte selon le type et la taille
                 if (d.type === 'song') {
-                    // Pour les chansons : plus de place avec les nouvelles bulles plus grandes
-                    maxLength = radius > 20 ? 35 : 25;
-                    shouldSplit = words.length > 1 && displayText.length > 15 && radius >= 20;
+                    // Pour les chansons : bulle fixe de rayon 50, adapter le texte
+                    const fontSize = calculateOptimalFontSize(d, radius);
+                    maxLength = Math.floor(radius * 2.5 / (fontSize * 0.6)); // Estimation basée sur la police calculée
+                    shouldSplit = words.length > 1 && displayText.length > 15;
                 } else {
-                    // Pour les genres - plus permissif pour la division en lignes
+                    // Pour les genres - logique existante
                     maxLength = radius > 35 ? 50 : 35;
-                    shouldSplit = words.length > 1 && displayText.length > 10 && radius > 25; // Plus permissif
+                    shouldSplit = words.length > 1 && displayText.length > 10 && radius > 25;
                 }
 
                 if (displayText.length > maxLength) {

@@ -52,6 +52,15 @@
                     <option value="avg_popularity">Taille par popularité</option>
                 </select>
             </label>
+            <label class="slider-control" id="songs-limit-control" style="display: none;">
+                <span>Titres: </span>
+                <select id="songs-limit-select">
+                    <option value="5">5 titres</option>
+                    <option value="10" selected>10 titres</option>
+                    <option value="20">20 titres</option>
+                    <option value="30">30 titres</option>
+                </select>
+            </label>
         </div>
     </header>
 
@@ -87,7 +96,10 @@
                 treeViz.createVisualization('#chart-area');
 
                 // Configurer les contrôles de métriques
-                setupMetricsControls(treeViz);
+                const controlsManager = setupMetricsControls(treeViz);
+                
+                // Configurer le callback de navigation
+                treeViz.onNavigationChange = controlsManager.updateSongsLimitVisibility;
 
                 // Afficher quelques statistiques supplémentaires
                 const stats = treeViz.getTreeStatistics();
@@ -111,16 +123,33 @@
         function setupMetricsControls(treeViz) {
             const colorSelect = document.getElementById('color-metric-select');
             const sizeSelect = document.getElementById('size-metric-select');
+            const songsLimitSelect = document.getElementById('songs-limit-select');
+            const songsLimitControl = document.getElementById('songs-limit-control');
+
+            // Fonction pour rafraîchir la visualisation
+            function refreshVisualization() {
+                document.getElementById('chart-area').innerHTML = '';
+                treeViz.createVisualization('#chart-area');
+                
+                // Mettre à jour la visibilité du contrôle de limite de titres
+                updateSongsLimitVisibility();
+            }
+
+            // Fonction pour gérer la visibilité du contrôle de limite de titres
+            function updateSongsLimitVisibility() {
+                if (treeViz.isDisplayingSongs()) {
+                    songsLimitControl.style.display = 'inline-flex';
+                } else {
+                    songsLimitControl.style.display = 'none';
+                }
+            }
 
             // Écouter les changements de métrique de couleur
             colorSelect.addEventListener('change', (e) => {
                 const metric = e.target.value;
                 console.log(`🎨 Changement de métrique de couleur: ${metric}`);
                 treeViz.setColorMetric(metric);
-                
-                // Recréer la visualisation avec la nouvelle métrique
-                document.getElementById('chart-area').innerHTML = '';
-                treeViz.createVisualization('#chart-area');
+                refreshVisualization();
             });
 
             // Écouter les changements de métrique de taille
@@ -128,13 +157,27 @@
                 const metric = e.target.value;
                 console.log(`📏 Changement de métrique de taille: ${metric}`);
                 treeViz.setSizeMetric(metric);
-                
-                // Recréer la visualisation avec la nouvelle métrique
-                document.getElementById('chart-area').innerHTML = '';
-                treeViz.createVisualization('#chart-area');
+                refreshVisualization();
             });
 
-            console.log('✅ Contrôles de métriques configurés');
+            // Écouter les changements de limite de titres
+            songsLimitSelect.addEventListener('change', (e) => {
+                const limit = parseInt(e.target.value);
+                console.log(`🎵 Changement de limite de titres: ${limit}`);
+                treeViz.setSongsLimit(limit);
+                refreshVisualization();
+            });
+
+            // Vérification initiale de la visibilité
+            updateSongsLimitVisibility();
+
+            console.log('✅ Contrôles de métriques et de titres configurés');
+            
+            // Retourner les fonctions utiles pour l'extérieur
+            return {
+                updateSongsLimitVisibility,
+                refreshVisualization
+            };
         }
     </script>
 </body>

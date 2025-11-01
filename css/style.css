@@ -130,6 +130,19 @@ body {
   gap: 16px;
 }
 
+/* Contrôle de slider pour le nombre de titres */
+.slider-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.slider-control span {
+  font-weight: 500;
+}
+
 /* ============================================================================
    DASHBOARD (Grille de panels)
    ============================================================================ */

@@ -20,6 +20,14 @@ export class TreeVisualization {
         this.colorMetric = 'none'; // 'none', 'danceability', 'energy', 'popularity'
         /** @type {string} */
         this.sizeMetric = 'count'; // 'count', 'avg_popularity'
+        
+        // Configuration du nombre de titres à afficher
+        /** @type {number} */
+        this.songsLimit = 10; // Nombre max de titres à afficher
+        
+        // Callback pour notifier les changements de navigation
+        /** @type {Function|null} */
+        this.onNavigationChange = null;
     }
 
     /**
@@ -179,7 +187,7 @@ export class TreeVisualization {
         }
         // Sinon, si c'est une feuille avec des chansons, afficher les chansons
         else if (this.currentNode.songs && this.currentNode.songs.length > 0) {
-            const songs = this.currentNode.songs.slice(0, 10).map(song => ({
+            const songs = this.currentNode.songs.slice(0, this.songsLimit).map(song => ({
                 type: 'song',
                 name: song.track_name,
                 artist: song.artist_name || 'Artiste inconnu', // Gérer le cas où artist_name n'existe pas
@@ -431,6 +439,11 @@ export class TreeVisualization {
         this.navigationHistory.push(childNode);
         this.currentNode = childNode;
         console.log(`Navigation vers: ${childNode.name}`);
+        
+        // Notifier le changement de navigation si callback défini
+        if (this.onNavigationChange) {
+            this.onNavigationChange();
+        }
     }
 
     /**
@@ -441,6 +454,11 @@ export class TreeVisualization {
             this.navigationHistory.pop();
             this.currentNode = this.navigationHistory[this.navigationHistory.length - 1];
             console.log(`Retour vers: ${this.currentNode.name}`);
+            
+            // Notifier le changement de navigation si callback défini
+            if (this.onNavigationChange) {
+                this.onNavigationChange();
+            }
         }
     }
 
@@ -1201,6 +1219,27 @@ export class TreeVisualization {
     setSizeMetric(metric) {
         this.sizeMetric = metric;
         console.log(`Métrique de taille définie: ${metric}`);
+    }
+
+    /**
+     * Définit le nombre maximum de titres à afficher
+     * @param {number} limit - Nombre max de titres (5, 10, 20, 30)
+     */
+    setSongsLimit(limit) {
+        this.songsLimit = limit;
+        console.log(`Limite de titres définie: ${limit}`);
+    }
+
+    /**
+     * Détermine si on affiche actuellement des titres (et pas des genres)
+     * @returns {boolean} True si on affiche des titres
+     */
+    isDisplayingSongs() {
+        if (!this.currentNode) return false;
+        
+        // On affiche des titres si c'est une feuille avec des chansons
+        return (!this.currentNode.children || this.currentNode.children.length === 0) &&
+               (this.currentNode.songs && this.currentNode.songs.length > 0);
     }
 
     /**

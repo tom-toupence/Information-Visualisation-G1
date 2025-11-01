@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Scatter Plot - Spotimix</title>
+
+  <!-- Font Awesome -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  />
+
+  <!-- D3 -->
+  <script src="https://d3js.org/d3.v7.min.js"></script>
+
+  <link rel="stylesheet" href="css/style.css" />
+  
+</head>
+<body>
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <a class="side-icon" href="index.html" title="Dashboard">
+      <i class="fa-solid fa-house"></i>
+    </a>
+    <a class="side-icon home" href="scatter.html" title="Scatter Plot">
+      <i class="fa-solid fa-chart-scatter"></i>
+    </a>
+    <a class="side-icon" href="#" title="Graph 2">
+      <i class="fa-solid fa-chart-pie"></i>
+    </a>
+    <a class="side-icon" href="#" title="Graph 3">
+      <i class="fa-solid fa-sliders"></i>
+    </a>
+  </aside>
+
+  <!-- Topbar -->
+  <header class="topbar">
+    <h1 class="brand">SCATTER PLOT</h1>
+    <label class="select">
+      <select id="year-select">
+        <option value="2023">2023</option>
+        <option value="2022">2022</option>
+        <option value="2021">2021</option>
+        <option value="2020">2020</option>
+        <option value="2019">2019</option>
+        <option value="2018">2018</option>
+        <option value="2017">2017</option>
+        <option value="2016">2016</option>
+        <option value="2015">2015</option>
+      </select>
+    </label>
+  </header>
+
+  <!-- Contenu principal -->
+  <main class="scatter-page">
+    <div class="info-banner">
+      <div class="info-content">
+        <strong>💡 Mode d'emploi :</strong>
+        Utilisez le <strong>brush</strong> (cliquer-glisser) pour sélectionner une zone • 
+        Les points se colorent selon leur popularité • 
+        Survolez pour voir les détails
+      </div>
+    </div>
+
+    <div id="scatter-container">
+      <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <p>Chargement des données...</p>
+      </div>
+      <div id="scatter-viz"></div>
+    </div>
+  </main>
+
+  <!-- Pipeline JS : Processor → Mapper → Chart → App -->
+  <script src="js/ScatterProcessor.js"></script>
+  <script src="js/ScatterMapper.js"></script>
+  <script src="js/ScatterChart.js"></script>
+  <script src="js/scatter-app.js"></script>
+</body>
+</html>

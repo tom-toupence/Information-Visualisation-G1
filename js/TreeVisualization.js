@@ -287,6 +287,13 @@ export class TreeVisualization {
 
         // Mettre à jour les positions avec la simulation
         simulation.on('tick', () => {
+            // Contraindre les cercles dans les limites du SVG
+            children.forEach(d => {
+                const radius = radiusScale(d.songCount || 0);
+                d.x = Math.max(radius, Math.min(width - radius, d.x));
+                d.y = Math.max(radius + 40, Math.min(height - radius, d.y)); // +40 pour éviter le titre
+            });
+
             bubbles.attr('transform', d => `translate(${d.x}, ${d.y})`);
         });
     }

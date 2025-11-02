@@ -61,6 +61,33 @@
                 </select>
             </label>
         </div>
+
+        <!-- Contrôles spécifiques aux chansons -->
+        <div class="songs-controls-group" id="songs-controls" style="display: none;">
+            <label class="select">
+                <select id="songs-sort-select">
+                    <option value="popularity,desc" selected>Popularité (↓)</option>
+                    <option value="popularity,asc">Popularité (↑)</option>
+                    <option value="danceability,desc">Danceability (↓)</option>
+                    <option value="danceability,asc">Danceability (↑)</option>
+                    <option value="energy,desc">Energy (↓)</option>
+                    <option value="energy,asc">Energy (↑)</option>
+                    <option value="year,desc">Année (↓)</option>
+                    <option value="year,asc">Année (↑)</option>
+                    <option value="name,asc">Nom (A-Z)</option>
+                </select>
+            </label>
+
+            <div class="year-filter">
+                <label class="year-input">
+                    De: <input type="number" id="year-min" min="1900" max="2025" placeholder="Année min">
+                </label>
+                <label class="year-input">
+                    À: <input type="number" id="year-max" min="1900" max="2025" placeholder="Année max">
+                </label>
+                <button id="clear-year-filter" class="btn-clear">Effacer</button>
+            </div>
+        </div>
     </header>
 
     <!-- Contenu principal -->
@@ -95,7 +122,7 @@
                 await treeViz.initialize();
 
                 // Créer une visualisation basique dans le conteneur chart-area
-                treeViz.createVisualization('#chart-area');
+                await treeViz.createVisualization('#chart-area');
 
                 // Configurer les contrôles de métriques
                 const controlsManager = setupMetricsControls(treeViz);
@@ -133,9 +160,16 @@
             const sizeMetricControl = document.getElementById('size-metric-control');
             const songsLimitControl = document.getElementById('songs-limit-control');
 
+            // Nouveaux contrôles pour les chansons
+            const songsControls = document.getElementById('songs-controls');
+            const songsSortSelect = document.getElementById('songs-sort-select');
+            const yearMinInput = document.getElementById('year-min');
+            const yearMaxInput = document.getElementById('year-max');
+            const clearYearButton = document.getElementById('clear-year-filter');
+
             // Fonction pour rafraîchir la visualisation (préserve la navigation)
-            function refreshVisualization() {
-                treeViz.refreshCurrentView('#chart-area');
+            async function refreshVisualization() {
+                await treeViz.refreshCurrentView('#chart-area');
 
                 // Mettre à jour la visibilité des contrôles
                 updateControlsVisibility();
@@ -151,15 +185,17 @@
             }            // Fonction pour gérer la visibilité des contrôles selon le contexte
             function updateControlsVisibility() {
                 if (treeViz.isDisplayingSongs()) {
-                    // Vue des titres : Afficher seulement le contrôle de limite de titres
+                    // Vue des titres : Afficher les contrôles de titres et de tri
                     colorMetricControl.style.display = 'none';
                     sizeMetricControl.style.display = 'none';
                     songsLimitControl.style.display = 'inline-flex';
+                    songsControls.style.display = 'flex';
                 } else {
-                    // Vue des genres : Afficher les contrôles de métriques, cacher le contrôle de titres
+                    // Vue des genres : Afficher les contrôles de métriques, cacher les contrôles de titres
                     colorMetricControl.style.display = 'inline-flex';
                     sizeMetricControl.style.display = 'inline-flex';
                     songsLimitControl.style.display = 'none';
+                    songsControls.style.display = 'none';
                 }
             }
 
@@ -168,27 +204,65 @@
             const updateSongsLimitVisibility = updateControlsVisibility;
 
             // Écouter les changements de métrique de couleur
-            colorSelect.addEventListener('change', (e) => {
+            colorSelect.addEventListener('change', async (e) => {
                 const metric = e.target.value;
                 console.log(`🎨 Changement de métrique de couleur: ${metric}`);
                 treeViz.setColorMetric(metric);
-                refreshVisualization(); // Préserve la navigation
+                await refreshVisualization(); // Préserve la navigation
             });
 
             // Écouter les changements de métrique de taille
-            sizeSelect.addEventListener('change', (e) => {
+            sizeSelect.addEventListener('change', async (e) => {
                 const metric = e.target.value;
                 console.log(`📏 Changement de métrique de taille: ${metric}`);
                 treeViz.setSizeMetric(metric);
-                refreshVisualization(); // Préserve la navigation
+                await refreshVisualization(); // Préserve la navigation
             });
 
-            // Écouter les changements de limite de titres
-            songsLimitSelect.addEventListener('change', (e) => {
+            // Écouter les changements de limite de chansons
+            songsLimitSelect.addEventListener('change', async (e) => {
                 const limit = parseInt(e.target.value);
-                console.log(`🎵 Changement de limite de titres: ${limit}`);
+                console.log(`🔢 Changement de limite de chansons: ${limit}`);
                 treeViz.setSongsLimit(limit);
-                refreshVisualization(); // Préserve la navigation - IMPORTANT !
+                await refreshVisualization(); // Préserve la navigation - IMPORTANT !
+            });
+
+            // Écouter les changements de tri des chansons
+            songsSortSelect.addEventListener('change', async (e) => {
+                console.log(`🔍 [DEBUG] Sélecteur de tri changé, valeur:`, e.target.value);
+                const [sortBy, sortOrder] = e.target.value.split(',');
+                console.log(`🔍 [DEBUG] Valeurs parsées: sortBy=${sortBy}, sortOrder=${sortOrder}`);
+                console.log(`🔄 Changement de tri des chansons: ${sortBy} (${sortOrder})`);
+                treeViz.setSongsSorting(sortBy, sortOrder);
+                await refreshVisualization(); // Préserve la navigation
+            });
+
+            // Fonction pour appliquer les filtres d'années avec debounce
+            let yearFilterTimeout;
+            function applyYearFilter() {
+                console.log(`🔍 [DEBUG] applyYearFilter appelé, valeurs inputs:`, yearMinInput.value, yearMaxInput.value);
+                clearTimeout(yearFilterTimeout);
+                yearFilterTimeout = setTimeout(async () => {
+                    const minYear = yearMinInput.value ? parseInt(yearMinInput.value) : null;
+                    const maxYear = yearMaxInput.value ? parseInt(yearMaxInput.value) : null;
+                    console.log(`🔍 [DEBUG] Valeurs parsées: min=${minYear}, max=${maxYear}`);
+                    console.log(`📅 Changement de filtre d'années: ${minYear || 'illimité'} - ${maxYear || 'illimité'}`);
+                    treeViz.setSongsYearFilter(minYear, maxYear);
+                    await refreshVisualization();
+                }, 500); // Debounce de 500ms
+            }
+
+            // Écouter les changements des filtres d'années
+            yearMinInput.addEventListener('input', applyYearFilter);
+            yearMaxInput.addEventListener('input', applyYearFilter);
+
+            // Bouton pour effacer les filtres d'années
+            clearYearButton.addEventListener('click', async () => {
+                yearMinInput.value = '';
+                yearMaxInput.value = '';
+                console.log('🗑️ Effacement des filtres d\'années');
+                treeViz.setSongsYearFilter(null, null);
+                await refreshVisualization();
             });
 
             console.log('✅ Contrôles de métriques et de titres configurés');

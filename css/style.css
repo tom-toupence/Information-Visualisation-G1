@@ -130,6 +130,70 @@ body {
   gap: 16px;
 }
 
+/* Groupe de contrôles spécifique aux chansons */
+.songs-controls-group {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(67, 76, 94, 0.3);
+  border-radius: 8px;
+  margin: 10px 16px;
+  border: 1px solid rgba(128, 139, 150, 0.2);
+}
+
+/* Filtre par années */
+.year-filter {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.year-input {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.year-input input {
+  width: 80px;
+  padding: 6px 8px;
+  background: var(--bg);
+  border: 1px solid rgba(128, 139, 150, 0.3);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 13px;
+  transition: border-color 0.2s ease;
+}
+
+.year-input input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(129, 161, 193, 0.2);
+}
+
+.year-input input::placeholder {
+  color: var(--text-muted);
+}
+
+.btn-clear {
+  padding: 6px 12px;
+  background: rgba(191, 97, 106, 0.2);
+  border: 1px solid rgba(191, 97, 106, 0.3);
+  border-radius: 6px;
+  color: #bf616a;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-clear:hover {
+  background: rgba(191, 97, 106, 0.4);
+  color: var(--text);
+}
+
 /* ============================================================================
    DASHBOARD (Grille de panels)
    ============================================================================ */

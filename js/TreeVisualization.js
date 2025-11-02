@@ -25,6 +25,18 @@ export class TreeVisualization {
         /** @type {number} */
         this.songsLimit = 10; // Nombre max de titres à afficher
 
+        // Configuration du tri et filtrage des chansons
+        /** @type {string} */
+        this.songsSortBy = 'popularity'; // 'danceability', 'energy', 'popularity', 'year', 'name'
+        /** @type {string} */
+        this.songsSortOrder = 'desc'; // 'asc' ou 'desc'
+        /** @type {number|null} */
+        this.songsYearMin = null; // Année minimum (optionnel)
+        /** @type {number|null} */
+        this.songsYearMax = null; // Année maximum (optionnel)
+        /** @type {boolean} */
+        this.includeUnknownYears = false; // Exclure les chansons sans année par défaut
+
         // Callback pour notifier les changements de navigation
         /** @type {Function|null} */
         this.onNavigationChange = null;
@@ -75,7 +87,7 @@ export class TreeVisualization {
      * Crée une visualisation D3 interactive en bulles de l'arbre des genres
      * @param {string} containerSelector - Sélecteur CSS du conteneur
      */
-    createVisualization(containerSelector) {
+    async createVisualization(containerSelector) {
         if (!this.genreTree) {
             console.error('Impossible de créer la visualisation : aucune donnée chargée');
             return;
@@ -117,7 +129,7 @@ export class TreeVisualization {
         this.navigationHistory = [this.genreTree];
 
         // Créer la visualisation initiale
-        this.renderBubbles(mainGroup, width - margin.left - margin.right, height - margin.top - margin.bottom);
+        await this.renderBubbles(mainGroup, width - margin.left - margin.right, height - margin.top - margin.bottom);
 
         // Notifier le changement si callback défini (pour mettre à jour la visibilité des contrôles)
         if (this.onNavigationChange) {
@@ -131,7 +143,7 @@ export class TreeVisualization {
      * Rafraîchit la vue actuelle sans réinitialiser la navigation
      * @param {string} containerSelector - Sélecteur CSS du conteneur
      */
-    refreshCurrentView(containerSelector) {
+    async refreshCurrentView(containerSelector) {
         const container = d3.select(containerSelector);
 
         if (container.empty()) {
@@ -156,14 +168,68 @@ export class TreeVisualization {
         const margin = { top: 20, right: 20, bottom: 20, left: 20 };
 
         // Rerendre les bulles avec la navigation actuelle préservée
-        this.renderBubbles(mainGroup, width - margin.left - margin.right, height - margin.top - margin.bottom);
+        console.log(`🔍 [DEBUG] refreshCurrentView: re-rendering avec nœud actuel: ${this.currentNode?.name}`);
+        await this.renderBubbles(mainGroup, width - margin.left - margin.right, height - margin.top - margin.bottom);
 
         // Notifier le changement si callback défini (pour mettre à jour la visibilité des contrôles)
         if (this.onNavigationChange) {
             this.onNavigationChange();
         }
 
-        console.log('Vue actuelle rafraîchie');
+        console.log('🔍 [DEBUG] Vue actuelle rafraîchie');
+    }
+
+    /**
+     * Enrichit les chansons de l'arbre avec les données complètes du CSV
+     * @param {Array} songs - Les chansons basiques de l'arbre (track_name, track_id)
+     * @returns {Promise<Array>} Les chansons enrichies avec toutes les métadonnées
+     */
+    async enrichSongsWithMetadata(songs) {
+        try {
+            // Obtenir les données Spotify complètes
+            const spotifyData = await this.dataLoader.loadSpotifyData();
+
+            // Créer un Map pour une recherche rapide par track_id
+            const spotifyMap = new Map();
+            spotifyData.forEach(track => {
+                spotifyMap.set(track.track_id, track);
+            });
+
+            // Enrichir chaque chanson de l'arbre avec les données Spotify
+            const enrichedSongs = songs.map(song => {
+                const fullData = spotifyMap.get(song.track_id);
+                if (fullData) {
+                    return fullData; // Retourner les données complètes
+                } else {
+                    // Si pas trouvé, créer un objet avec des valeurs par défaut
+                    return {
+                        ...song,
+                        artist_name: song.artist_name || 'Unknown',
+                        popularity: 0,
+                        year: null,
+                        genre: this.currentNode.name,
+                        danceability: 0,
+                        energy: 0,
+                        key: 0,
+                        loudness: -20,
+                        mode: 0,
+                        speechiness: 0,
+                        acousticness: 0,
+                        instrumentalness: 0,
+                        liveness: 0,
+                        valence: 0,
+                        tempo: 120,
+                        duration_ms: 180000,
+                        time_signature: 4
+                    };
+                }
+            });
+
+            return enrichedSongs;
+        } catch (error) {
+            console.error('Erreur lors de l\'enrichissement des chansons:', error);
+            return songs; // Retourner les chansons originales en cas d'erreur
+        }
     }
 
     /**
@@ -172,7 +238,7 @@ export class TreeVisualization {
      * @param {number} width - Largeur disponible
      * @param {number} height - Hauteur disponible
      */
-    renderBubbles(group, width, height) {
+    async renderBubbles(group, width, height) {
         // Nettoyer le groupe
         group.selectAll('*').remove();
 
@@ -209,9 +275,9 @@ export class TreeVisualization {
                 .style('font-size', '12px')
                 .text('← Retour');
 
-            backButton.on('click', () => {
+            backButton.on('click', async () => {
                 this.goBack();
-                this.renderBubbles(group, width, height);
+                await this.renderBubbles(group, width, height);
             });
         }
 
@@ -231,7 +297,29 @@ export class TreeVisualization {
         }
         // Sinon, si c'est une feuille avec des chansons, afficher les chansons
         else if (this.currentNode.songs && this.currentNode.songs.length > 0) {
-            const songs = this.currentNode.songs.slice(0, this.songsLimit).map(song => ({
+            // OPTIMISATION ULTIME: Utiliser directement les chansons de l'arbre enrichi
+            // L'arbre enrichi contient déjà TOUTES les chansons du genre
+            console.log(`� [OPTIMISÉ] Utilisation directe des ${this.currentNode.songs.length} chansons de l'arbre enrichi pour "${this.currentNode.name}"`);
+            // Enrichir les chansons avec les métadonnées du CSV
+            const enrichedSongs = await this.enrichSongsWithMetadata(this.currentNode.songs);
+
+            // DEBUG: Analyser les chansons enrichies pour les filtres
+            console.log(`[DEBUG-FILTRE] Genre "${this.currentNode.name}" - ${enrichedSongs.length} chansons enrichies`);
+
+            // Tester quelques chansons pour voir leurs années
+            if (enrichedSongs.length > 0) {
+                console.log(`[DEBUG-FILTRE] Échantillon des années après enrichissement:`);
+                for (let i = 0; i < Math.min(5, enrichedSongs.length); i++) {
+                    const song = enrichedSongs[i];
+                    const year = this.extractYearFromSong(song);
+                    console.log(`  - "${song.track_name}" (${song.artist_name}): année=${year}`);
+                }
+                console.log(`[DEBUG-FILTRE] Filtres actifs: min=${this.songsYearMin}, max=${this.songsYearMax}, tri=${this.songsSortBy}, limite=${this.songsLimit}`);
+            }
+
+            const processedSongs = this.processSongsForDisplay(enrichedSongs);
+            console.log(`[DEBUG-FILTRE] Après processSongsForDisplay: ${processedSongs.length} chansons (de ${enrichedSongs.length} initiales)`);
+            const songs = processedSongs.map(song => ({
                 type: 'song',
                 name: song.track_name,
                 artist: song.artist_name || 'Artiste inconnu', // Gérer le cas où artist_name n'existe pas
@@ -240,6 +328,7 @@ export class TreeVisualization {
                 childCount: 0,
                 songData: song
             }));
+
             dataToShow.push(...songs);
         }
 
@@ -259,6 +348,7 @@ export class TreeVisualization {
         const children = dataToShow;
 
         // Calculer la taille des bulles différemment selon le type
+        // TODO : ce filtre est il nécéssaire étant donné la nature des données indexées ?
         const maxSongs = Math.max(...children.filter(d => d.type === 'genre').map(d => d.songCount), 1);
 
         const radiusScale = d3.scaleOrdinal()
@@ -433,12 +523,12 @@ export class TreeVisualization {
         //     .text(d => `${d.childCount} sous-genres`);
 
         // Événements de clic pour navigation
-        bubbles.on('click', (event, d) => {
+        bubbles.on('click', async (event, d) => {
             if (d.type === 'genre') {
                 // Naviguer vers le genre (qu'il ait des enfants ou des chansons)
                 console.log(`Navigation vers le genre: "${d.name}" (${d.songCount} chansons)`);
                 this.navigateToChild(d);
-                this.renderBubbles(group, width, height);
+                await this.renderBubbles(group, width, height);
             } else if (d.type === 'song') {
                 console.log(`Chanson sélectionnée: "${d.displayName}"`);
                 this.showSongDetails(d);
@@ -1270,6 +1360,172 @@ export class TreeVisualization {
     }
 
     /**
+     * Extrait l'année d'une chanson depuis différentes sources possibles
+     * @param {Object} song - Objet chanson
+     * @returns {number|null} - Année ou null si non trouvée
+     * @private
+     */
+    extractYearFromSong(song) {
+        // 1. Propriété directe 'year'
+        if (song.year !== undefined && song.year !== null) {
+            const year = typeof song.year === 'number' ? song.year : parseInt(song.year, 10);
+            if (!isNaN(year) && year >= 1900 && year <= 2025) {
+                return year;
+            }
+        }
+
+        // 2. Parsing de 'release_date' (format: "YYYY-MM-DD" ou "YYYY")
+        if (song.release_date) {
+            const yearMatch = song.release_date.toString().match(/(\d{4})/);
+            if (yearMatch) {
+                const year = parseInt(yearMatch[1], 10);
+                if (!isNaN(year) && year >= 1900 && year <= 2025) {
+                    return year;
+                }
+            }
+        }
+
+        // 3. Autres propriétés possibles : 'album_release_date', etc.
+        if (song.album_release_date) {
+            const yearMatch = song.album_release_date.toString().match(/(\d{4})/);
+            if (yearMatch) {
+                const year = parseInt(yearMatch[1], 10);
+                if (!isNaN(year) && year >= 1900 && year <= 2025) {
+                    return year;
+                }
+            }
+        }
+
+        // 4. Vérifier d'autres propriétés possibles dans les données Spotify
+        const possibleYearFields = ['track_year', 'album_year', 'year_released'];
+        for (const field of possibleYearFields) {
+            if (song[field] !== undefined && song[field] !== null) {
+                const year = typeof song[field] === 'number' ? song[field] : parseInt(song[field], 10);
+                if (!isNaN(year) && year >= 1900 && year <= 2025) {
+                    return year;
+                }
+            }
+        }
+
+        return null; // Aucune année trouvée
+    }
+
+    // SUPPRIMÉ: getAllSongsFromGenre() - Plus nécessaire car on utilise directement this.currentNode.songs
+
+    /**
+     * Traite les chansons selon les critères de tri et filtrage définis
+     * @param {Array} songs - Tableau des chansons brutes du genre
+     * @returns {Array} - Tableau des chansons filtrées, triées et limitées
+     */
+    processSongsForDisplay(songs) {
+        console.log(`🔍 [DEBUG] processSongsForDisplay appelé avec ${songs.length} chansons`);
+        console.log(`🔍 [DEBUG] Filtres: année ${this.songsYearMin}-${this.songsYearMax}, tri: ${this.songsSortBy} (${this.songsSortOrder})`);
+
+        // Vérifier que songs est un tableau valide
+        if (!Array.isArray(songs) || songs.length === 0) {
+            return [];
+        }
+
+        let filteredSongs = songs;
+
+        // Filtrage par plage d'années si définie
+        if (this.songsYearMin !== null || this.songsYearMax !== null) {
+            console.log(`🔍 [DEBUG] Application du filtre d'années: ${this.songsYearMin} - ${this.songsYearMax}`);
+
+            filteredSongs = songs.filter(song => {
+                const songYear = this.extractYearFromSong(song);
+
+                // Debug: afficher quelques exemples
+                if (Math.random() < 0.1) { // 10% des chansons pour éviter le spam
+                    console.log(`🔍 [DEBUG] Chanson "${song.track_name}": année extraite = ${songYear}, propriétés année:`, {
+                        year: song.year,
+                        release_date: song.release_date,
+                        album_release_date: song.album_release_date
+                    });
+                }
+
+                // Si pas d'année disponible, inclure selon la stratégie définie
+                if (songYear === null) {
+                    return this.includeUnknownYears;
+                }
+
+                // Vérifier les bornes min et max
+                if (this.songsYearMin !== null && songYear < this.songsYearMin) {
+                    return false;
+                }
+                if (this.songsYearMax !== null && songYear > this.songsYearMax) {
+                    return false;
+                }
+
+                return true;
+            });
+
+            console.log(`🔍 [DEBUG] Après filtrage par année: ${filteredSongs.length} chansons restantes`);
+        }
+        // Créer une copie pour ne pas modifier l'original
+        const sortedSongs = [...filteredSongs];
+
+        // Tri selon le critère choisi
+        sortedSongs.sort((a, b) => {
+            let valueA, valueB;
+
+            // Extraire les valeurs selon le critère de tri
+            switch (this.songsSortBy) {
+                case 'popularity':
+                    valueA = a.popularity || 0;
+                    valueB = b.popularity || 0;
+                    break;
+
+                case 'danceability':
+                    valueA = a.danceability || 0;
+                    valueB = b.danceability || 0;
+                    break;
+
+                case 'energy':
+                    valueA = a.energy || 0;
+                    valueB = b.energy || 0;
+                    break;
+
+                case 'year':
+                    valueA = this.extractYearFromSong(a) || 0;
+                    valueB = this.extractYearFromSong(b) || 0;
+                    break;
+
+                case 'name':
+                    valueA = (a.track_name || '').toLowerCase();
+                    valueB = (b.track_name || '').toLowerCase();
+                    // Pour les strings, utiliser localeCompare
+                    return this.songsSortOrder === 'asc'
+                        ? valueA.localeCompare(valueB)
+                        : valueB.localeCompare(valueA);
+
+                default:
+                    return 0; // Pas de tri
+            }
+
+            // Comparer selon l'ordre (asc/desc)
+            if (this.songsSortOrder === 'asc') {
+                return valueA - valueB;
+            } else {
+                return valueB - valueA;
+            }
+        });
+
+        // Prendre seulement les N premiers selon la limite
+        const limitedSongs = sortedSongs.slice(0, this.songsLimit);
+
+        console.log(`🔍 [DEBUG] Résultat final: ${limitedSongs.length} chansons après tri et limite`);
+        if (limitedSongs.length > 0) {
+            console.log(`🔍 [DEBUG] Première chanson:`, limitedSongs[0].track_name, 'année:', this.extractYearFromSong(limitedSongs[0]));
+            console.log(`🔍 [DEBUG] Dernière chanson:`, limitedSongs[limitedSongs.length - 1].track_name, 'année:', this.extractYearFromSong(limitedSongs[limitedSongs.length - 1]));
+        }
+
+        return limitedSongs;
+    }
+
+    // SUPPRIMÉ: processSongsForDisplayNew() - Plus nécessaire car on utilise directement processSongsForDisplay
+
+    /**
      * Définit le nombre maximum de titres à afficher
      * @param {number} limit - Nombre max de titres (5, 10, 20, 30)
      */
@@ -1279,6 +1535,40 @@ export class TreeVisualization {
     }
 
     /**
+     * Configure le tri des chansons
+     * @param {string} sortBy - Critère de tri ('popularity', 'danceability', 'energy', 'year', 'name')
+     * @param {string} sortOrder - Ordre de tri ('asc' ou 'desc')
+     */
+    setSongsSorting(sortBy, sortOrder = 'desc') {
+        console.log(`🔍 [DEBUG] setSongsSorting appelé avec: ${sortBy}, ${sortOrder}`);
+        const validCriteria = ['popularity', 'danceability', 'energy', 'year', 'name'];
+        if (!validCriteria.includes(sortBy)) {
+            console.warn(`Critère de tri invalide: ${sortBy}. Utilisation de 'popularity' par défaut.`);
+            this.songsSortBy = 'popularity';
+        } else {
+            this.songsSortBy = sortBy;
+        }
+
+        this.songsSortOrder = ['asc', 'desc'].includes(sortOrder) ? sortOrder : 'desc';
+        console.log(`🔍 [DEBUG] Tri des chansons défini: ${this.songsSortBy} (${this.songsSortOrder})`);
+    }    /**
+     * Configure le filtre par années
+     * @param {number|null} minYear - Année minimum (null pour désactiver)
+     * @param {number|null} maxYear - Année maximum (null pour désactiver)
+     */
+    setSongsYearFilter(minYear, maxYear) {
+        console.log(`🔍 [DEBUG] setSongsYearFilter appelé avec: ${minYear}, ${maxYear}`);
+        this.songsYearMin = (minYear && minYear >= 1900 && minYear <= 2025) ? minYear : null;
+        this.songsYearMax = (maxYear && maxYear >= 1900 && maxYear <= 2025) ? maxYear : null;
+
+        // Vérifier la cohérence des bornes
+        if (this.songsYearMin && this.songsYearMax && this.songsYearMin > this.songsYearMax) {
+            console.warn('Année minimum supérieure à année maximum. Inversion automatique.');
+            [this.songsYearMin, this.songsYearMax] = [this.songsYearMax, this.songsYearMin];
+        }
+
+        console.log(`🔍 [DEBUG] Filtre d'années défini: ${this.songsYearMin || 'illimité'} - ${this.songsYearMax || 'illimité'}`);
+    }    /**
      * Détermine si on affiche actuellement des titres (et pas des genres)
      * @returns {boolean} True si on affiche des titres
      */

@@ -203,65 +203,9 @@ export class DataLoader {
         }));
     }
 
-    /**
-     * Charge l'index des genres
-     * @returns {Promise<GenreIndex>} L'index des genres
-     * @throws {Error} Si le format des données est invalide
-     */
-    async loadGenreIndex() {
-        const cacheKey = 'genre_index';
+    // SUPPRIMÉ: loadGenreIndex() et validateGenreIndex() - Plus nécessaires car on utilise directement l'arbre enrichi
 
-        if (this.cache.has(cacheKey)) {
-            return this.cache.get(cacheKey);
-        }
-
-        const genreIndex = await d3.json(this.genreTreeFileName);
-
-        if (!this.validateGenreIndex(genreIndex)) {
-            throw new Error('Invalid data format for genre index');
-        }
-
-        this.cache.set(cacheKey, genreIndex);
-        // @ts-ignore
-        return genreIndex;
-    }
-
-    /**
-     * Valide la structure de l'index des genres
-     * @param {any} genreIndex - L'index à valider
-     * @returns {boolean} True si la structure est valide
-     * @private
-     */
-    validateGenreIndex(genreIndex) {
-        if (!genreIndex || typeof genreIndex !== 'object') {
-            return false;
-        }
-
-        for (const [genre, songs] of Object.entries(genreIndex)) {
-            if (!Array.isArray(songs)) {
-                return false;
-            }
-
-            for (let i = 0; i < Math.min(3, songs.length); i++) {
-                const song = songs[i];
-                if (!song || typeof song.track_name !== 'string' || typeof song.track_id !== 'string') {
-                    return false;
-                }
-            }
-        }
-
-        return true;
-    }
-
-    /**
-     * Récupère les chansons d'un genre spécifique
-     * @param {string} genre - Le nom du genre
-     * @returns {Promise<SongInfo[]>} Les chansons du genre
-     */
-    async getSongsByGenre(genre) {
-        const genreIndex = await this.loadGenreIndex();
-        return genreIndex[genre] || [];
-    }
+    // SUPPRIMÉ: getSongsByGenre() - Plus nécessaire car on utilise directement l'arbre enrichi
 
     /**
      * Récupère les propriétés d'un titre par son ID
@@ -319,29 +263,65 @@ export class DataLoader {
     }
 
     /**
-     * Récupère la liste des genres disponibles
+     * Récupère la liste des genres disponibles depuis l'arbre enrichi
      * @returns {Promise<string[]>} Les genres disponibles triés
      */
     async getAvailableGenres() {
-        const genreIndex = await this.loadGenreIndex();
-        return Object.keys(genreIndex).sort();
+        const enrichedTree = await this.loadGenreTreeWithSongs();
+        const genres = [];
+        this.collectGenresFromTree(enrichedTree, genres);
+        return genres.sort();
     }
 
     /**
-     * Récupère les statistiques de l'index des genres
+     * Récupère les statistiques depuis l'arbre enrichi
      * @returns {Promise<{genreCount: number, totalSongs: number, avgSongsPerGenre: number}>} Les statistiques
      */
     async getGenreIndexStats() {
-        const genreIndex = await this.loadGenreIndex();
-        const genreCount = Object.keys(genreIndex).length;
-        const totalSongs = Object.values(genreIndex).reduce((sum, songs) => sum + songs.length, 0);
-        const avgSongsPerGenre = genreCount > 0 ? Math.round(totalSongs / genreCount) : 0;
+        const enrichedTree = await this.loadGenreTreeWithSongs();
+        const stats = { genreCount: 0, totalSongs: 0 };
+        this.collectStatsFromTree(enrichedTree, stats);
 
         return {
-            genreCount,
-            totalSongs,
-            avgSongsPerGenre
+            genreCount: stats.genreCount,
+            totalSongs: stats.totalSongs,
+            avgSongsPerGenre: stats.genreCount > 0 ? Math.round(stats.totalSongs / stats.genreCount) : 0
         };
+    }
+
+    /**
+     * Collecte récursivement les genres depuis l'arbre
+     * @param {any} node - Le nœud à explorer
+     * @param {string[]} genres - Le tableau des genres à remplir
+     * @private
+     */
+    collectGenresFromTree(node, genres) {
+        if (node.songs && node.songs.length > 0) {
+            genres.push(node.name);
+        }
+        if (node.children) {
+            for (const child of node.children) {
+                this.collectGenresFromTree(child, genres);
+            }
+        }
+    }
+
+    /**
+     * Collecte récursivement les statistiques depuis l'arbre
+     * @param {any} node - Le nœud à explorer
+     * @param {any} stats - L'objet des statistiques à remplir
+     * @private
+     */
+    collectStatsFromTree(node, stats) {
+        if (node.songs && node.songs.length > 0) {
+            stats.genreCount++;
+            stats.totalSongs += node.songs.length;
+        }
+        if (node.children) {
+            for (const child of node.children) {
+                this.collectStatsFromTree(child, stats);
+            }
+        }
     }
 
     /**

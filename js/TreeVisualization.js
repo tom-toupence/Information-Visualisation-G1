@@ -358,33 +358,79 @@ export class TreeVisualization {
                 () => 50
             ]);
 
-        // Fonction pour mesurer la largeur du texte d'une chanson
-        const measureSongTextWidth = (songNode, fontSize) => {
+        // Fonction pour mesurer la largeur du texte d'une chanson avec plus de précision
+        const measureSongTextWidth = (text, fontSize, fontFamily = 'Arial') => {
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
-            context.font = `${fontSize}px Arial`;
-
-            const text = songNode.displayName || songNode.name;
+            context.font = `${fontSize}px ${fontFamily}`;
             return context.measureText(text).width;
         };
 
-        // Fonction pour calculer la taille de police optimale pour une chanson
-        const calculateOptimalFontSize = (songNode, fixedRadius) => {
+        // Fonction améliorée pour calculer la taille de police optimale
+        const calculateOptimalFontSize = (songNode, radius) => {
             const text = songNode.displayName || songNode.name;
-            const availableWidth = fixedRadius * 1.6; // Largeur utilisable dans le cercle
-
-            // Tester différentes tailles de police
-            for (let fontSize = 14; fontSize >= 6; fontSize--) {
-                const textWidth = measureSongTextWidth(songNode, fontSize);
-
-                // Si le texte rentre avec cette taille de police
-                if (textWidth <= availableWidth) {
-                    return fontSize;
+            const words = text.split(' ');
+            
+            // Calculer l'espace disponible (80% du diamètre pour laisser de la marge)
+            const availableWidth = radius * 1.4;
+            const maxLines = Math.min(3, Math.ceil(words.length / 2)); // Maximum 3 lignes
+            
+            // Si le texte est court (moins de 2 mots), optimiser pour une ligne
+            if (words.length <= 2) {
+                for (let fontSize = 16; fontSize >= 8; fontSize--) {
+                    const textWidth = measureSongTextWidth(text, fontSize);
+                    if (textWidth <= availableWidth) {
+                        return fontSize;
+                    }
+                }
+            } else {
+                // Pour les textes longs, optimiser pour plusieurs lignes
+                for (let fontSize = 14; fontSize >= 7; fontSize--) {
+                    // Estimer la largeur moyenne par ligne
+                    const avgWordsPerLine = Math.ceil(words.length / maxLines);
+                    const avgLineText = words.slice(0, avgWordsPerLine).join(' ');
+                    const avgLineWidth = measureSongTextWidth(avgLineText, fontSize);
+                    
+                    if (avgLineWidth <= availableWidth) {
+                        return fontSize;
+                    }
                 }
             }
 
             // Taille minimum de sécurité
-            return 6;
+            return 7;
+        };
+
+        // Fonction pour diviser intelligemment le texte en lignes
+        const splitTextIntoLines = (text, fontSize, radius, maxLines = 3) => {
+            const words = text.split(' ');
+            const availableWidth = radius * 1.4;
+            const lines = [];
+            let currentLine = '';
+
+            for (let word of words) {
+                const testLine = currentLine ? currentLine + ' ' + word : word;
+                const lineWidth = measureSongTextWidth(testLine, fontSize);
+                
+                if (lineWidth > availableWidth && currentLine !== '' && lines.length < maxLines - 1) {
+                    lines.push(currentLine.trim());
+                    currentLine = word;
+                } else {
+                    currentLine = testLine;
+                }
+            }
+            
+            if (currentLine) {
+                lines.push(currentLine.trim());
+            }
+            
+            // Si on a trop de lignes, tronquer la dernière
+            if (lines.length > maxLines) {
+                lines[maxLines - 1] = lines[maxLines - 1] + '...';
+                lines.splice(maxLines);
+            }
+            
+            return lines.slice(0, maxLines);
         };
 
         // Utiliser la nouvelle logique de taille basée sur les métriques
@@ -420,87 +466,102 @@ export class TreeVisualization {
             .style('stroke-width', 2)
             .style('opacity', 0.8);
 
-        // Texte des bulles - centré verticalement
+        // Texte des bulles - centré verticalement avec gestion améliorée
         bubbles.append('text')
             .attr('text-anchor', 'middle')
             .attr('dy', '0.35em')
             .style('font-size', d => {
                 const radius = getRadius(d);
                 if (d.type === 'song') {
-                    // Pour les chansons, calculer la taille optimale pour rentrer dans la bulle fixe
+                    // Pour les chansons, utiliser la nouvelle fonction de calcul optimale
                     return calculateOptimalFontSize(d, radius) + 'px';
                 } else {
-                    // Pour les genres, garder la logique existante
-                    return Math.max(9, radius / 4.5) + 'px';
+                    // Pour les genres, améliorer la logique de taille
+                    return Math.max(10, Math.min(18, radius / 4)) + 'px';
                 }
             })
-            .style('font-weight', d => d.type === 'song' ? 'normal' : 'bold') // Texte normal pour les chansons
-            .style('fill', this.colorMetric === 'popularity' ? 'white' : '#333')
+            .style('font-weight', d => d.type === 'song' ? '500' : 'bold') // Texte semi-gras pour les chansons
+            .style('fill', (d, i) => {
+                const backgroundColor = getColor(d, i);
+                return this.getOptimalTextColor(backgroundColor);
+            })
             .style('pointer-events', 'none')
+            .style('font-family', 'Arial, sans-serif')
             .each(function (d) {
                 const text = d3.select(this);
                 const displayText = d.displayName || d.name;
-                const words = displayText.split(' ');
                 const radius = getRadius(d);
 
-                // Ajuster la longueur du texte selon le type et la taille
-                let maxLength;
-                let shouldSplit = false;
-
                 if (d.type === 'song') {
-                    // Pour les chansons : bulle fixe de rayon 50, adapter le texte
-                    const fontSize = calculateOptimalFontSize(d, radius);
-                    maxLength = Math.floor(radius * 2.5 / (fontSize * 0.6)); // Estimation basée sur la police calculée
-                    shouldSplit = words.length > 1 && displayText.length > 15;
-                } else {
-                    // Pour les genres - logique existante
-                    maxLength = radius > 35 ? 50 : 35;
-                    shouldSplit = words.length > 1 && displayText.length > 10 && radius > 25;
-                }
-
-                if (displayText.length > maxLength) {
-                    // Tronquer le texte si trop long
-                    text.text(displayText.substring(0, maxLength - 3) + '...');
-                } else if (shouldSplit) {
-                    // Diviser intelligemment en lignes en groupant les mots
+                    // Utiliser la nouvelle logique pour les chansons
                     text.text('');
-                    const lineHeight = d.type === 'song' ? 1.0 : 1.1;
-                    const maxLines = d.type === 'song' ? 3 : 3; // Augmenter à 3 lignes pour les genres aussi
+                    const fontSize = calculateOptimalFontSize(d, radius);
+                    const lines = splitTextIntoLines(displayText, fontSize, radius);
+                    
+                    if (lines.length === 1) {
+                        // Une seule ligne - centrer verticalement
+                        text.attr('dy', '0.35em').text(lines[0]);
+                    } else {
+                        // Plusieurs lignes
+                        const lineHeight = 1.1;
+                        const totalHeight = (lines.length - 1) * lineHeight;
+                        const startY = -totalHeight / 2;
 
-                    // Calculer la longueur maximale par ligne basée sur le rayon
-                    const maxCharsPerLine = Math.floor(radius / 3.5); // Adaptatif selon la taille de bulle
-
-                    // Grouper les mots intelligemment
-                    const lines = [];
-                    let currentLine = '';
-
-                    for (let word of words) {
-                        const testLine = currentLine ? currentLine + ' ' + word : word;
-
-                        // Si la ligne devient trop longue ou on a atteint le max de lignes
-                        if (testLine.length > maxCharsPerLine && currentLine !== '' && lines.length < maxLines - 1) {
-                            lines.push(currentLine);
-                            currentLine = word;
-                        } else {
-                            currentLine = testLine;
-                        }
+                        lines.forEach((line, i) => {
+                            text.append('tspan')
+                                .attr('x', 0)
+                                .attr('dy', i === 0 ? `${startY}em` : `${lineHeight}em`)
+                                .text(line);
+                        });
                     }
-
-                    // Ajouter la dernière ligne
-                    if (currentLine) lines.push(currentLine);
-
-                    // Limiter au nombre maximum de lignes
-                    const finalLines = lines.slice(0, maxLines);
-                    const startY = -(finalLines.length - 1) * lineHeight / 2;
-
-                    finalLines.forEach((line, i) => {
-                        text.append('tspan')
-                            .attr('x', 0)
-                            .attr('dy', i === 0 ? `${startY}em` : `${lineHeight}em`)
-                            .text(line);
-                    });
                 } else {
-                    text.text(displayText);
+                    // Logique existante améliorée pour les genres
+                    const words = displayText.split(' ');
+                    const maxLength = radius > 40 ? 60 : (radius > 30 ? 40 : 25);
+                    const shouldSplit = words.length > 1 && displayText.length > 12 && radius > 30;
+
+                    if (displayText.length > maxLength) {
+                        // Tronquer intelligemment au dernier mot complet
+                        let truncated = displayText.substring(0, maxLength - 3);
+                        const lastSpace = truncated.lastIndexOf(' ');
+                        if (lastSpace > maxLength / 2) {
+                            truncated = truncated.substring(0, lastSpace);
+                        }
+                        text.text(truncated + '...');
+                    } else if (shouldSplit) {
+                        text.text('');
+                        const lineHeight = 1.2;
+                        const maxLines = 2;
+                        const maxCharsPerLine = Math.floor(radius / 3);
+
+                        const lines = [];
+                        let currentLine = '';
+
+                        for (let word of words) {
+                            const testLine = currentLine ? currentLine + ' ' + word : word;
+                            
+                            if (testLine.length > maxCharsPerLine && currentLine !== '' && lines.length < maxLines - 1) {
+                                lines.push(currentLine);
+                                currentLine = word;
+                            } else {
+                                currentLine = testLine;
+                            }
+                        }
+                        
+                        if (currentLine) lines.push(currentLine);
+                        
+                        const finalLines = lines.slice(0, maxLines);
+                        const startY = -(finalLines.length - 1) * lineHeight / 2;
+
+                        finalLines.forEach((line, i) => {
+                            text.append('tspan')
+                                .attr('x', 0)
+                                .attr('dy', i === 0 ? `${startY}em` : `${lineHeight}em`)
+                                .text(line);
+                        });
+                    } else {
+                        text.text(displayText);
+                    }
                 }
             });        // Informations supplémentaires (nombre de chansons)
         // bubbles.append('text')
@@ -1661,5 +1722,39 @@ export class TreeVisualization {
             }));
         }
         return [];
+    }
+
+    /**
+     * Calcule la luminosité relative d'une couleur RGB
+     * @param {string} color - Couleur au format hex ou rgb
+     * @returns {number} Luminosité relative (0-1)
+     */
+    getRelativeLuminance(color) {
+        // Convertir la couleur en RGB
+        const rgb = d3.rgb(color);
+        
+        // Calculer la luminosité relative selon la formule W3C
+        const r = rgb.r / 255;
+        const g = rgb.g / 255;
+        const b = rgb.b / 255;
+        
+        const rLinear = r <= 0.03928 ? r / 12.92 : Math.pow((r + 0.055) / 1.055, 2.4);
+        const gLinear = g <= 0.03928 ? g / 12.92 : Math.pow((g + 0.055) / 1.055, 2.4);
+        const bLinear = b <= 0.03928 ? b / 12.92 : Math.pow((b + 0.055) / 1.055, 2.4);
+        
+        return 0.2126 * rLinear + 0.7152 * gLinear + 0.0722 * bLinear;
+    }
+
+    /**
+     * Détermine la couleur de texte optimale selon le fond
+     * @param {string} backgroundColor - Couleur de fond
+     * @returns {string} Couleur de texte optimale (blanc ou noir)
+     */
+    getOptimalTextColor(backgroundColor) {
+        const luminance = this.getRelativeLuminance(backgroundColor);
+        
+        // Si la couleur de fond est sombre (luminosité < 0.5), utiliser du texte blanc
+        // Sinon, utiliser du texte sombre
+        return luminance < 0.5 ? '#ffffff' : '#2e3440';
     }
 }

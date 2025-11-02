@@ -1,3 +1,5 @@
+import { HeatmapProcessor } from './HeatmapProcessor.js';
+
 /**
  * HeatmapChart - Visualise la heatmap avec D3.js
  * Gère le rendu, les axes, la légende, les tooltips et la modale
@@ -8,12 +10,12 @@ class HeatmapChart {
         this.width = options.width || this.getResponsiveWidth();
         this.height = options.height || this.getResponsiveHeight();
         this.margin = options.margin || { top: 80, right: 100, bottom: 80, left: 150 };
-        
+
         this.svg = null;
         this.tooltip = null;
         this.colorScale = null;
         this.legendVisible = true;  // État de la légende
-        
+
         this.initTooltip();
         this.initColorScale();
         this.setupResizeListener();
@@ -64,7 +66,7 @@ class HeatmapChart {
     initTooltip() {
         // Supprimer tooltip existant
         d3.select('#heatmap-tooltip').remove();
-        
+
         this.tooltip = d3.select('body')
             .append('div')
             .attr('id', 'heatmap-tooltip')
@@ -115,7 +117,7 @@ class HeatmapChart {
     render(data, allTracks, yearMin = null, yearMax = null) {
         // Sauvegarder les données pour le redimensionnement
         this.lastRenderData = [data, allTracks, yearMin, yearMax];
-        
+
         // Nettoyer le conteneur
         d3.select(`#${this.containerId}`).selectAll('*').remove();
 
@@ -160,7 +162,7 @@ class HeatmapChart {
 
         // Ajouter la légende
         this.drawLegend();
-        
+
         // Mettre à jour le bouton "Afficher la légende" si nécessaire
         this.updateLegendButton();
     }
@@ -184,7 +186,7 @@ class HeatmapChart {
             .attr('stroke', '#1a1a1a')
             .attr('stroke-width', 1)
             .style('cursor', 'pointer')
-            .on('mouseover', function(event, d) {
+            .on('mouseover', function (event, d) {
                 d3.select(this)
                     .transition()
                     .duration(200)
@@ -200,12 +202,12 @@ class HeatmapChart {
                         Nombre de pistes: ${d.track_count}
                     `);
             })
-            .on('mousemove', function(event) {
+            .on('mousemove', function (event) {
                 self.tooltip
                     .style('top', (event.pageY - 10) + 'px')
                     .style('left', (event.pageX + 10) + 'px');
             })
-            .on('mouseout', function() {
+            .on('mouseout', function () {
                 d3.select(this)
                     .transition()
                     .duration(200)
@@ -228,13 +230,13 @@ class HeatmapChart {
             .attr('class', 'x-axis')
             .attr('transform', `translate(0,${this.height - this.margin.bottom})`)
             .call(d3.axisBottom(xScale));
-        
+
         xAxis.selectAll('text')
             .attr('transform', 'rotate(-45)')
             .style('text-anchor', 'end')
             .style('font-size', '12px')
             .style('fill', 'white');
-        
+
         xAxis.selectAll('line, path')
             .style('stroke', 'white');
 
@@ -253,11 +255,11 @@ class HeatmapChart {
             .attr('class', 'y-axis')
             .attr('transform', `translate(${this.margin.left},0)`)
             .call(d3.axisLeft(yScale));
-        
+
         yAxis.selectAll('text')
             .style('font-size', '11px')
             .style('fill', 'white');
-        
+
         yAxis.selectAll('line, path')
             .style('stroke', 'white');
 
@@ -337,10 +339,10 @@ class HeatmapChart {
             .style('padding', '0')
             .style('line-height', '1')
             .on('click', () => this.toggleLegend())
-            .on('mouseenter', function() {
+            .on('mouseenter', function () {
                 d3.select(this).style('background', '#353a50');
             })
-            .on('mouseleave', function() {
+            .on('mouseleave', function () {
                 d3.select(this).style('background', '#222637');
             });
 
@@ -373,7 +375,7 @@ class HeatmapChart {
     toggleLegend() {
         this.legendVisible = !this.legendVisible;
         this.drawLegend();
-        
+
         // Afficher le bouton "Afficher la légende" si masquée
         this.updateLegendButton();
     }
@@ -404,10 +406,10 @@ class HeatmapChart {
                 .style('z-index', '1000')
                 .style('box-shadow', '0 4px 12px rgba(0, 0, 0, 0.5)')
                 .on('click', () => this.toggleLegend())
-                .on('mouseenter', function() {
+                .on('mouseenter', function () {
                     d3.select(this).style('background-color', 'rgba(50, 50, 50, 0.95)');
                 })
-                .on('mouseleave', function() {
+                .on('mouseleave', function () {
                     d3.select(this).style('background-color', 'rgba(30, 30, 30, 0.95)');
                 });
         }
@@ -433,7 +435,7 @@ class HeatmapChart {
             .style('align-items', 'center')
             .style('justify-content', 'center')
             .style('z-index', '2000')
-            .on('click', function(event) {
+            .on('click', function (event) {
                 if (event.target === this) {
                     d3.select('#heatmap-modal').remove();
                 }
@@ -503,14 +505,14 @@ class HeatmapChart {
             const yearRange = HeatmapProcessor.getYearRange(tracks);
             const min = yearMin !== null ? yearMin : yearRange.min;
             const max = yearMax !== null ? yearMax : yearRange.max;
-            
+
             const years = [];
             for (let year = min; year <= max; year++) {
                 years.push(year);
             }
             return years;
         }
-        
+
         // Sinon, utiliser la plage complète
         const yearRange = HeatmapProcessor.getYearRange(tracks);
         const years = [];
@@ -521,7 +523,5 @@ class HeatmapChart {
     }
 }
 
-// Export pour utilisation dans d'autres fichiers
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = HeatmapChart;
-}
+// Export ES6
+export { HeatmapChart };

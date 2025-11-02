@@ -2,7 +2,7 @@
  * TreeVisualization - Classe pour gérer la visualisation de l'arbre des genres musicaux
  */
 
-import { DataLoader } from './data/DataLoader.js';
+import { DataLoader } from './DataLoader.js';
 
 /**
  * Classe pour gérer la visualisation de l'arbre des genres musicaux
@@ -699,14 +699,11 @@ export class TreeVisualization {
         this.showLoadingInfo();
 
         try {
-            // Récupérer les propriétés complètes via DataLoader
-            const fullTrackData = await this.dataLoader.getProps(songNode.songData.track_id);
-
-            // Utiliser les données complètes si disponibles, sinon les données de base
-            const song = fullTrackData || songNode.songData;
+            // Utiliser directement les données de la chanson (déjà enrichies)
+            const song = songNode.songData;
 
             // Afficher les informations dans le panneau
-            this.displaySongInfo(song, !!fullTrackData);
+            this.displaySongInfo(song, true);
         } catch (error) {
             console.error('Erreur lors du chargement des détails de la chanson:', error);
             // Fallback sur les données de base

@@ -435,7 +435,7 @@ export class TreeVisualization {
                 }
             })
             .style('font-weight', d => d.type === 'song' ? 'normal' : 'bold') // Texte normal pour les chansons
-            .style('fill', '#333')
+            .style('fill', this.colorMetric === 'popularity' ? 'white' : '#333')
             .style('pointer-events', 'none')
             .each(function (d) {
                 const text = d3.select(this);
@@ -1611,7 +1611,7 @@ export class TreeVisualization {
                     .domain([0, 1]);
                 return colorScale(value);
             } else if (this.colorMetric === 'popularity') {
-                const colorScale = d3.scaleSequential(d3.interpolatePurples)
+                const colorScale = d3.scaleSequential(d3.interpolateViridis)
                     .domain([0, 100]);
                 return colorScale(value);
             }

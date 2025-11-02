@@ -370,11 +370,11 @@ export class TreeVisualization {
         const calculateOptimalFontSize = (songNode, radius) => {
             const text = songNode.displayName || songNode.name;
             const words = text.split(' ');
-            
+
             // Calculer l'espace disponible (80% du diamètre pour laisser de la marge)
             const availableWidth = radius * 1.4;
             const maxLines = Math.min(3, Math.ceil(words.length / 2)); // Maximum 3 lignes
-            
+
             // Si le texte est court (moins de 2 mots), optimiser pour une ligne
             if (words.length <= 2) {
                 for (let fontSize = 16; fontSize >= 8; fontSize--) {
@@ -390,7 +390,7 @@ export class TreeVisualization {
                     const avgWordsPerLine = Math.ceil(words.length / maxLines);
                     const avgLineText = words.slice(0, avgWordsPerLine).join(' ');
                     const avgLineWidth = measureSongTextWidth(avgLineText, fontSize);
-                    
+
                     if (avgLineWidth <= availableWidth) {
                         return fontSize;
                     }
@@ -411,7 +411,7 @@ export class TreeVisualization {
             for (let word of words) {
                 const testLine = currentLine ? currentLine + ' ' + word : word;
                 const lineWidth = measureSongTextWidth(testLine, fontSize);
-                
+
                 if (lineWidth > availableWidth && currentLine !== '' && lines.length < maxLines - 1) {
                     lines.push(currentLine.trim());
                     currentLine = word;
@@ -419,17 +419,17 @@ export class TreeVisualization {
                     currentLine = testLine;
                 }
             }
-            
+
             if (currentLine) {
                 lines.push(currentLine.trim());
             }
-            
+
             // Si on a trop de lignes, tronquer la dernière
             if (lines.length > maxLines) {
                 lines[maxLines - 1] = lines[maxLines - 1] + '...';
                 lines.splice(maxLines);
             }
-            
+
             return lines.slice(0, maxLines);
         };
 
@@ -497,7 +497,7 @@ export class TreeVisualization {
                     text.text('');
                     const fontSize = calculateOptimalFontSize(d, radius);
                     const lines = splitTextIntoLines(displayText, fontSize, radius);
-                    
+
                     if (lines.length === 1) {
                         // Une seule ligne - centrer verticalement
                         text.attr('dy', '0.35em').text(lines[0]);
@@ -539,7 +539,7 @@ export class TreeVisualization {
 
                         for (let word of words) {
                             const testLine = currentLine ? currentLine + ' ' + word : word;
-                            
+
                             if (testLine.length > maxCharsPerLine && currentLine !== '' && lines.length < maxLines - 1) {
                                 lines.push(currentLine);
                                 currentLine = word;
@@ -547,9 +547,9 @@ export class TreeVisualization {
                                 currentLine = testLine;
                             }
                         }
-                        
+
                         if (currentLine) lines.push(currentLine);
-                        
+
                         const finalLines = lines.slice(0, maxLines);
                         const startY = -(finalLines.length - 1) * lineHeight / 2;
 
@@ -1732,16 +1732,16 @@ export class TreeVisualization {
     getRelativeLuminance(color) {
         // Convertir la couleur en RGB
         const rgb = d3.rgb(color);
-        
+
         // Calculer la luminosité relative selon la formule W3C
         const r = rgb.r / 255;
         const g = rgb.g / 255;
         const b = rgb.b / 255;
-        
+
         const rLinear = r <= 0.03928 ? r / 12.92 : Math.pow((r + 0.055) / 1.055, 2.4);
         const gLinear = g <= 0.03928 ? g / 12.92 : Math.pow((g + 0.055) / 1.055, 2.4);
         const bLinear = b <= 0.03928 ? b / 12.92 : Math.pow((b + 0.055) / 1.055, 2.4);
-        
+
         return 0.2126 * rLinear + 0.7152 * gLinear + 0.0722 * bLinear;
     }
 
@@ -1752,7 +1752,7 @@ export class TreeVisualization {
      */
     getOptimalTextColor(backgroundColor) {
         const luminance = this.getRelativeLuminance(backgroundColor);
-        
+
         // Si la couleur de fond est sombre (luminosité < 0.5), utiliser du texte blanc
         // Sinon, utiliser du texte sombre
         return luminance < 0.5 ? '#ffffff' : '#2e3440';

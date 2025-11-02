@@ -4,7 +4,7 @@
  * Les préférences utilisateur sont stockées dans LocalStorage
  */
 class DataLoader {
-    constructor() {
+    constructor(preload = false) {
         // Cache mémoire pour les données
         this.cache = new Map();
         // Chemin du CSV (dans assets/)
@@ -19,21 +19,25 @@ class DataLoader {
         this.isLoading = false;
         // Promise de chargement en cours
         this.loadingPromise = null;
-        
-        // Préchargement automatique des données au démarrage
-        this.loadSpotifyData().then(() => {
-            console.log('📦 DataLoader initialisé avec préchargement des données');
-        }).catch(error => {
-            console.warn('⚠️ Préchargement échoué, chargement à la demande:', error.message);
-        });
-    }
 
-    /**
+        // Préchargement conditionnel des données
+        if (preload) {
+            console.log('🚀 Préchargement des données activé pour TreeVisualization...');
+            this.loadSpotifyData().then(() => {
+                console.log('📦 DataLoader initialisé avec préchargement des données');
+            }).catch(error => {
+                console.warn('⚠️ Préchargement échoué, chargement à la demande:', error.message);
+            });
+        } else {
+            console.log('📦 DataLoader initialisé en mode lazy loading (chargement à la demande)');
+        }
+    }    /**
      * Récupère l'instance singleton de DataLoader
+     * @param {boolean} preload - Active le préchargement des données (pour TreeVisualization)
      */
-    static getInstance() {
+    static getInstance(preload = false) {
         if (!DataLoader.instance) {
-            DataLoader.instance = new DataLoader();
+            DataLoader.instance = new DataLoader(preload);
         }
         return DataLoader.instance;
     }
@@ -59,15 +63,15 @@ class DataLoader {
         // 3. Démarrer le chargement du CSV
         this.isLoading = true;
         console.log('Loading Spotify data from CSV (this may take a few seconds)...');
-        
+
         this.loadingPromise = (async () => {
             try {
                 const rawData = await d3.csv(this.dataPath);
                 const spotifyTracks = this.parseSpotifyData(rawData);
-                
+
                 // Sauvegarder UNIQUEMENT dans le cache mémoire
                 this.cache.set(cacheKey, spotifyTracks);
-                
+
                 console.log(`Loaded ${spotifyTracks.length} tracks (${(JSON.stringify(spotifyTracks).length / 1024 / 1024).toFixed(2)} MB in memory)`);
                 return spotifyTracks;
             } finally {
@@ -156,8 +160,8 @@ class DataLoader {
         if (data.length === 0) return [];
 
         const sample = data[0];
-        return Object.keys(sample).filter(key => 
-            typeof sample[key] === 'number' && 
+        return Object.keys(sample).filter(key =>
+            typeof sample[key] === 'number' &&
             !['key', 'mode', 'time_signature', 'year', 'duration_ms'].includes(key)
         );
     }
@@ -191,13 +195,13 @@ class DataLoader {
         try {
             console.log('🔄 Chargement de l\'arbre de genres...');
             const response = await fetch(this.genresTreePath);
-            
+
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
-            
+
             const genresTree = await response.json();
-            
+
             if (!genresTree || typeof genresTree !== 'object' || typeof genresTree.name !== 'string') {
                 throw new Error('Format invalide pour l\'arbre de genres');
             }
@@ -222,14 +226,14 @@ class DataLoader {
         if (node.name && !node.children) {
             genres.push(node.name);
         }
-        
+
         // Parcourir récursivement les enfants
         if (node.children) {
             node.children.forEach(child => {
                 this.extractGenresFromTree(child, genres);
             });
         }
-        
+
         return genres;
     }
 
@@ -274,7 +278,7 @@ class DataLoader {
         const spotifyData = await this.loadSpotifyData();
         const genres = new Set(spotifyData.map(track => track.genre || track.track_genre));
         const years = spotifyData.map(track => track.year).filter(y => y > 0);
-        
+
         return {
             totalTracks: spotifyData.length,
             genreCount: genres.size,
@@ -481,7 +485,7 @@ class DataLoader {
     getCacheInfo() {
         const hasData = this.cache.has('spotify_data');
         const dataSize = hasData ? this.cache.get('spotify_data').length : 0;
-        
+
         return {
             hasMemoryCache: hasData,
             trackCount: dataSize,

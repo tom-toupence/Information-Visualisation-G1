@@ -10,7 +10,7 @@ import { DataLoader } from './DataLoader.js';
 export class TreeVisualization {
     constructor() {
         /** @type {DataLoader} */
-        this.dataLoader = DataLoader.getInstance();
+        this.dataLoader = DataLoader.getInstance(true); // Activer le préchargement pour TreeVisualization
 
         /** @type {any} */
         this.genreTree = null;

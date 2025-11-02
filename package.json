@@ -3,7 +3,7 @@
     "version": "1.0.0",
     "description": "Projet de visualisation d'informations avec D3.js",
     "scripts": {
-        "serve": "http-server public -p 3000 -o"
+        "serve": "http-server . -p 3000 -o"
     },
     "keywords": [
         "d3.js",

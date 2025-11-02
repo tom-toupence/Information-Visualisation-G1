@@ -5,16 +5,57 @@
 class HeatmapChart {
     constructor(containerId, options = {}) {
         this.containerId = containerId;
-        this.width = options.width || 1800;
-        this.height = options.height || 600;
+        this.width = options.width || this.getResponsiveWidth();
+        this.height = options.height || this.getResponsiveHeight();
         this.margin = options.margin || { top: 80, right: 100, bottom: 80, left: 150 };
         
         this.svg = null;
         this.tooltip = null;
         this.colorScale = null;
+        this.legendVisible = true;  // État de la légende
         
         this.initTooltip();
         this.initColorScale();
+        this.setupResizeListener();
+    }
+
+    /**
+     * Calcule la largeur responsive
+     */
+    getResponsiveWidth() {
+        const container = document.getElementById(this.containerId);
+        if (container) {
+            return Math.max(container.clientWidth, 800);
+        }
+        return 1800;
+    }
+
+    /**
+     * Calcule la hauteur responsive
+     */
+    getResponsiveHeight() {
+        const container = document.getElementById(this.containerId);
+        if (container) {
+            return Math.max(container.clientHeight, 400);
+        }
+        return 600;
+    }
+
+    /**
+     * Configure l'écouteur de redimensionnement
+     */
+    setupResizeListener() {
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                if (this.lastRenderData) {
+                    this.width = this.getResponsiveWidth();
+                    this.height = this.getResponsiveHeight();
+                    this.render(...this.lastRenderData);
+                }
+            }, 250);
+        });
     }
 
     /**
@@ -68,8 +109,13 @@ class HeatmapChart {
      * Rend la heatmap
      * @param {Array} data - Cellules de heatmap à afficher
      * @param {Array} allTracks - Toutes les pistes (pour la plage d'années globale)
+     * @param {Number} yearMin - Année minimale du filtre (optionnel)
+     * @param {Number} yearMax - Année maximale du filtre (optionnel)
      */
-    render(data, allTracks) {
+    render(data, allTracks, yearMin = null, yearMax = null) {
+        // Sauvegarder les données pour le redimensionnement
+        this.lastRenderData = [data, allTracks, yearMin, yearMax];
+        
         // Nettoyer le conteneur
         d3.select(`#${this.containerId}`).selectAll('*').remove();
 
@@ -85,7 +131,7 @@ class HeatmapChart {
 
         // Obtenir les artistes et années
         const artists = HeatmapProcessor.getUniqueArtists(data);
-        const years = this.getYearRange(allTracks);
+        const years = this.getYearRange(allTracks, yearMin, yearMax);
 
         // Créer les échelles
         const xScale = d3.scaleBand()
@@ -101,8 +147,10 @@ class HeatmapChart {
         // Créer le SVG
         this.svg = d3.select(`#${this.containerId}`)
             .append('svg')
-            .attr('width', this.width)
-            .attr('height', this.height);
+            .attr('width', '100%')
+            .attr('height', '100%')
+            .attr('viewBox', `0 0 ${this.width} ${this.height}`)
+            .attr('preserveAspectRatio', 'xMidYMid meet');
 
         // Dessiner les cellules
         this.drawCells(data, xScale, yScale);
@@ -112,6 +160,9 @@ class HeatmapChart {
 
         // Ajouter la légende
         this.drawLegend();
+        
+        // Mettre à jour le bouton "Afficher la légende" si nécessaire
+        this.updateLegendButton();
     }
 
     /**
@@ -173,14 +224,19 @@ class HeatmapChart {
      */
     drawAxes(xScale, yScale) {
         // Axe X (années)
-        this.svg.append('g')
+        const xAxis = this.svg.append('g')
             .attr('class', 'x-axis')
             .attr('transform', `translate(0,${this.height - this.margin.bottom})`)
-            .call(d3.axisBottom(xScale))
-            .selectAll('text')
+            .call(d3.axisBottom(xScale));
+        
+        xAxis.selectAll('text')
             .attr('transform', 'rotate(-45)')
             .style('text-anchor', 'end')
-            .style('font-size', '12px');
+            .style('font-size', '12px')
+            .style('fill', 'white');
+        
+        xAxis.selectAll('line, path')
+            .style('stroke', 'white');
 
         // Label axe X
         this.svg.append('text')
@@ -189,15 +245,21 @@ class HeatmapChart {
             .attr('text-anchor', 'middle')
             .style('font-size', '14px')
             .style('font-weight', 'bold')
+            .style('fill', 'white')
             .text('Année');
 
         // Axe Y (artistes)
-        this.svg.append('g')
+        const yAxis = this.svg.append('g')
             .attr('class', 'y-axis')
             .attr('transform', `translate(${this.margin.left},0)`)
-            .call(d3.axisLeft(yScale))
-            .selectAll('text')
-            .style('font-size', '11px');
+            .call(d3.axisLeft(yScale));
+        
+        yAxis.selectAll('text')
+            .style('font-size', '11px')
+            .style('fill', 'white');
+        
+        yAxis.selectAll('line, path')
+            .style('stroke', 'white');
 
         // Label axe Y
         this.svg.append('text')
@@ -207,13 +269,19 @@ class HeatmapChart {
             .attr('text-anchor', 'middle')
             .style('font-size', '14px')
             .style('font-weight', 'bold')
+            .style('fill', 'white')
             .text('Artiste');
     }
 
     /**
-     * Dessine la légende
+     * Dessine la légende avec bouton de fermeture (overlay HTML)
      */
     drawLegend() {
+        // Supprimer la légende existante
+        d3.select('#heatmap-legend').remove();
+
+        if (!this.legendVisible) return;
+
         const legendData = [
             { range: 'Aucune donnée', color: this.colorScale(0) },
             { range: '0-20', color: this.colorScale(10) },
@@ -223,36 +291,126 @@ class HeatmapChart {
             { range: '80-100', color: this.colorScale(90) }
         ];
 
-        const legendX = this.width - this.margin.right + 20;
-        const legendY = this.margin.top;
+        // Créer la légende en overlay HTML
+        const legend = d3.select('body')
+            .append('div')
+            .attr('id', 'heatmap-legend')
+            .style('position', 'fixed')
+            .style('bottom', '20px')
+            .style('right', '20px')
+            .style('background-color', 'rgba(30, 30, 30, 0.95)')
+            .style('border', '1px solid #444')
+            .style('border-radius', '8px')
+            .style('padding', '15px')
+            .style('z-index', '1000')
+            .style('box-shadow', '0 4px 12px rgba(0, 0, 0, 0.5)');
 
-        const legend = this.svg.append('g')
-            .attr('class', 'legend')
-            .attr('transform', `translate(${legendX},${legendY})`);
+        // Container pour le titre et le bouton close
+        const header = legend.append('div')
+            .style('display', 'flex')
+            .style('justify-content', 'space-between')
+            .style('align-items', 'center')
+            .style('margin-bottom', '10px');
 
-        legend.append('text')
-            .attr('x', 0)
-            .attr('y', -10)
-            .style('font-size', '12px')
+        // Titre
+        header.append('div')
+            .style('font-size', '14px')
             .style('font-weight', 'bold')
+            .style('color', 'white')
             .text('Popularité');
 
-        legendData.forEach((item, i) => {
-            const legendRow = legend.append('g')
-                .attr('transform', `translate(0,${i * 25})`);
+        // Bouton Close
+        header.append('button')
+            .text('✕')
+            .style('background', '#222637')
+            .style('border', '1px solid white')
+            .style('border-radius', '50%')
+            .style('width', '24px')
+            .style('height', '24px')
+            .style('color', 'white')
+            .style('font-size', '14px')
+            .style('font-weight', 'bold')
+            .style('cursor', 'pointer')
+            .style('display', 'flex')
+            .style('align-items', 'center')
+            .style('justify-content', 'center')
+            .style('padding', '0')
+            .style('line-height', '1')
+            .on('click', () => this.toggleLegend())
+            .on('mouseenter', function() {
+                d3.select(this).style('background', '#353a50');
+            })
+            .on('mouseleave', function() {
+                d3.select(this).style('background', '#222637');
+            });
 
-            legendRow.append('rect')
-                .attr('width', 20)
-                .attr('height', 20)
-                .attr('fill', item.color)
-                .attr('stroke', '#1a1a1a');
+        // Entrées de la légende
+        const items = legend.append('div');
 
-            legendRow.append('text')
-                .attr('x', 25)
-                .attr('y', 15)
-                .style('font-size', '11px')
+        legendData.forEach((item) => {
+            const row = items.append('div')
+                .style('display', 'flex')
+                .style('align-items', 'center')
+                .style('margin-bottom', '8px');
+
+            row.append('div')
+                .style('width', '20px')
+                .style('height', '20px')
+                .style('background-color', item.color)
+                .style('border', '1px solid #1a1a1a')
+                .style('margin-right', '10px');
+
+            row.append('span')
+                .style('font-size', '12px')
+                .style('color', 'white')
                 .text(item.range);
         });
+    }
+
+    /**
+     * Affiche/masque la légende
+     */
+    toggleLegend() {
+        this.legendVisible = !this.legendVisible;
+        this.drawLegend();
+        
+        // Afficher le bouton "Afficher la légende" si masquée
+        this.updateLegendButton();
+    }
+
+    /**
+     * Met à jour le bouton pour afficher la légende
+     */
+    updateLegendButton() {
+        // Supprimer le bouton existant
+        d3.select('#show-legend-button').remove();
+
+        if (!this.legendVisible) {
+            // Créer un bouton HTML en overlay
+            d3.select('body')
+                .append('button')
+                .attr('id', 'show-legend-button')
+                .text('Afficher la légende')
+                .style('position', 'fixed')
+                .style('bottom', '20px')
+                .style('right', '20px')
+                .style('background-color', 'rgba(30, 30, 30, 0.95)')
+                .style('border', '1px solid #444')
+                .style('border-radius', '8px')
+                .style('padding', '12px 20px')
+                .style('color', 'white')
+                .style('font-size', '13px')
+                .style('cursor', 'pointer')
+                .style('z-index', '1000')
+                .style('box-shadow', '0 4px 12px rgba(0, 0, 0, 0.5)')
+                .on('click', () => this.toggleLegend())
+                .on('mouseenter', function() {
+                    d3.select(this).style('background-color', 'rgba(50, 50, 50, 0.95)');
+                })
+                .on('mouseleave', function() {
+                    d3.select(this).style('background-color', 'rgba(30, 30, 30, 0.95)');
+                });
+        }
     }
 
     /**
@@ -334,9 +492,26 @@ class HeatmapChart {
     }
 
     /**
-     * Obtient la plage d'années complète
+     * Obtient la plage d'années complète ou filtrée
+     * @param {Array} tracks - Toutes les pistes
+     * @param {Number} yearMin - Année minimale du filtre (optionnel)
+     * @param {Number} yearMax - Année maximale du filtre (optionnel)
      */
-    getYearRange(tracks) {
+    getYearRange(tracks, yearMin = null, yearMax = null) {
+        // Si des filtres sont appliqués, les utiliser
+        if (yearMin !== null || yearMax !== null) {
+            const yearRange = HeatmapProcessor.getYearRange(tracks);
+            const min = yearMin !== null ? yearMin : yearRange.min;
+            const max = yearMax !== null ? yearMax : yearRange.max;
+            
+            const years = [];
+            for (let year = min; year <= max; year++) {
+                years.push(year);
+            }
+            return years;
+        }
+        
+        // Sinon, utiliser la plage complète
         const yearRange = HeatmapProcessor.getYearRange(tracks);
         const years = [];
         for (let year = yearRange.min; year <= yearRange.max; year++) {

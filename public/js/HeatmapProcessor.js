@@ -91,7 +91,7 @@ class HeatmapProcessor {
     }
 
     /**
-     * Obtient les N artistes les plus populaires
+     * Obtient les N artistes les plus populaires (par popularité cumulée)
      * @param {Array} cells - Cellules de heatmap
      * @param {number} topN - Nombre d'artistes à retourner
      * @returns {Array} Cellules filtrées pour les top artistes
@@ -111,9 +111,9 @@ class HeatmapProcessor {
         const sortedArtists = Array.from(artistStats.entries())
             .map(([artist, stats]) => ({
                 artist,
-                avgPopularity: stats.total / stats.count
+                cumulativePopularity: stats.total  // Popularité cumulée au lieu de moyenne
             }))
-            .sort((a, b) => b.avgPopularity - a.avgPopularity)
+            .sort((a, b) => b.cumulativePopularity - a.cumulativePopularity)
             .slice(0, topN)
             .map(item => item.artist);
 

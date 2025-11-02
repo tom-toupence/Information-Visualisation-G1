@@ -16,7 +16,7 @@ class DataLoader {
     }
 
     // Chargement des données Spotify depuis CSV
-    async loadSpotifyData() {
+    async loadSpotifyData(csvPath = '../spotify_data.csv') {
         const cacheKey = 'spotify_data';
         
         // Vérifier le cache
@@ -27,7 +27,7 @@ class DataLoader {
 
         try {
             console.log('🔄 Chargement des données Spotify...');
-            const rawData = await d3.csv('spotify_data.csv');
+            const rawData = await d3.csv(csvPath);
             const spotifyTracks = this.parseSpotifyData(rawData);
             
             // Mettre en cache

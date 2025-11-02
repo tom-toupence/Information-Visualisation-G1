@@ -206,7 +206,7 @@ export class TimelineChart {
     }
 
     drawAxis() {
-        this.g.selectAll('.axis, .tempo-line, .vertical-line, .center-box, .extended-axis, .axis-labels, .center-horizontal-line').remove();
+        this.g.selectAll('.axis, .tempo-line, .vertical-line, .center-box, .extended-axis, .axis-labels, .center-horizontal-line, .year-indicator, .year-label').remove();
 
         const chartHeight = this.config.height - this.config.margin.top - this.config.margin.bottom;
         const axisHeight = chartHeight - 40; // Placer l'axe en bas (avec un peu de marge pour les labels)
@@ -533,6 +533,50 @@ export class TimelineChart {
             .style('stroke-width', 1)
             .style('opacity', 0.4);
 
+        // === INDICATEURS TEMPORELS ===
+        
+        // Trait et label pour 2025 (en haut)
+        const topY = chartHeight * 0.02;
+        this.g.append('line')
+            .attr('class', 'year-indicator')
+            .attr('x1', -5)
+            .attr('x2', 5)
+            .attr('y1', topY)
+            .attr('y2', topY)
+            .style('stroke', '#999')
+            .style('stroke-width', 2);
+            
+        this.g.append('text')
+            .attr('class', 'year-label')
+            .attr('x', -35)
+            .attr('y', topY + 5)
+            .style('fill', '#999')
+            .style('font-size', '12px')
+            .style('font-weight', '500')
+            .style('text-anchor', 'start')
+            .text('2025');
+
+        // Trait et label pour 1980 (en bas)
+        const bottomY = chartHeight * 0.92;
+        this.g.append('line')
+            .attr('class', 'year-indicator')
+            .attr('x1', -5)
+            .attr('x2', 5)
+            .attr('y1', bottomY)
+            .attr('y2', bottomY)
+            .style('stroke', '#999')
+            .style('stroke-width', 2);
+            
+        this.g.append('text')
+            .attr('class', 'year-label')
+            .attr('x', -35)
+            .attr('y', bottomY + 5)
+            .style('fill', '#999')
+            .style('font-size', '12px')
+            .style('font-weight', '500')
+            .style('text-anchor', 'start')
+            .text('2000');
+
         // === LABELS DES AXES AVEC FLÈCHES ===
         
         // Définir un marqueur de flèche pour l'axe horizontal
@@ -609,7 +653,7 @@ export class TimelineChart {
             .style('fill', '#b3b3b3')
             .style('font-size', '14px')
             .style('font-weight', '500')
-            .text('Musiques');
+            .text('Date de sortie (année)');
     }
 
     drawTracks() {
@@ -635,6 +679,14 @@ export class TimelineChart {
         const pointSpacing = 40; // Espacement fixe de 40px
 
         tracksByBPM.forEach((tracks, bpm) => {
+            // Trier les tracks par année (plus récentes en haut = index plus faible)
+            // Les plus anciennes auront un index plus élevé et seront donc en bas
+            tracks.sort((a, b) => {
+                const yearA = a.year || 0; // Utiliser directement la propriété year
+                const yearB = b.year || 0;
+                return yearB - yearA; // Tri décroissant : plus récent en premier (en haut)
+            });
+            
             // Recalculer les positions de base pour tous les tracks
             tracks.forEach((track, index) => {
                 if (tracks.length === 1) {
@@ -758,9 +810,16 @@ export class TimelineChart {
         const sameTempoTracks = visibleTracks.filter(d => Math.round(d.tempo) === bpm);
         console.log('Visible tracks:', visibleTracks.length, 'Same tempo tracks:', sameTempoTracks.length);
         
-        // Trouver l'index du track sélectionné dans ce groupe
+        // Trier les tracks par année (même tri que dans drawTracks)
+        sameTempoTracks.sort((a, b) => {
+            const yearA = a.year || 0; // Utiliser directement la propriété year
+            const yearB = b.year || 0;
+            return yearB - yearA; // Tri décroissant : plus récent en premier (en haut)
+        });
+        
+        // Trouver l'index du track sélectionné dans ce groupe APRÈS le tri
         const selectedIndex = sameTempoTracks.findIndex(t => t.track_id === selectedTrack.track_id);
-        console.log('Selected index:', selectedIndex);
+        console.log('Selected index after sorting:', selectedIndex);
         
         if (selectedIndex === -1) {
             console.log('ERROR: Selected track not found in visible tracks');

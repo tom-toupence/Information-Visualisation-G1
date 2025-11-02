@@ -9,6 +9,8 @@ class DataLoader {
         this.cache = new Map();
         /** @type {string} Chemin du CSV */
         this.dataPath = 'data/spotify_data.csv';
+        /** @type {string} Chemin du JSON des genres */
+        this.genresTreePath = 'data/music_genres_tree.json';
         /** @type {string} Clé pour les préférences utilisateur */
         this.prefsKey = 'spotimix_user_prefs';
         /** @type {boolean} Flag pour éviter les chargements multiples */
@@ -136,13 +138,56 @@ class DataLoader {
     }
 
     /**
-     * Récupère la liste des genres disponibles
-     * @returns {Promise<string[]>} Les genres disponibles triés
+     * Charge l'arbre des genres depuis le JSON
+     * @returns {Promise<Object>} L'arbre des genres
+     */
+    async loadGenresTree() {
+        // Vérifier le cache mémoire
+        if (this.cache.has('genres_tree')) {
+            return this.cache.get('genres_tree');
+        }
+
+        try {
+            const response = await fetch(this.genresTreePath);
+            const genresTree = await response.json();
+            this.cache.set('genres_tree', genresTree);
+            return genresTree;
+        } catch (error) {
+            console.error('Error loading genres tree:', error);
+            return { name: 'Music Genres', children: [] };
+        }
+    }
+
+    /**
+     * Extrait tous les genres de l'arbre hiérarchique
+     * @param {Object} node - Nœud de l'arbre
+     * @param {string[]} genres - Tableau pour accumuler les genres
+     * @returns {string[]} Liste de tous les genres
+     */
+    extractGenresFromTree(node, genres = []) {
+        // Si le nœud a un nom et pas d'enfants, c'est un genre final
+        if (node.name && !node.children) {
+            genres.push(node.name);
+        }
+        
+        // Parcourir récursivement les enfants
+        if (node.children) {
+            node.children.forEach(child => {
+                this.extractGenresFromTree(child, genres);
+            });
+        }
+        
+        return genres;
+    }
+
+    /**
+     * Récupère la liste des genres disponibles depuis music_genres_tree.json
+     * @returns {Promise<string[]>} Les genres disponibles triés alphabétiquement
      */
     async getAvailableGenres() {
-        const spotifyData = await this.loadSpotifyData();
-        const genres = [...new Set(spotifyData.map(track => track.genre))];
-        return genres.sort();
+        const genresTree = await this.loadGenresTree();
+        const allGenres = this.extractGenresFromTree(genresTree);
+        return allGenres.sort();
     }
 
     /**

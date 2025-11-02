@@ -360,6 +360,19 @@ body {
     font-family: inherit !important;
 }
 
+/* Backdrop pour le panneau de détails */
+.details-backdrop {
+    font-family: inherit !important;
+    transition: opacity 0.3s ease;
+    cursor: pointer;
+}
+
+/* Panneau de détails */
+.details-panel {
+    font-family: inherit !important;
+    transition: opacity 0.3s ease;
+}
+
 /* SVG Text */
 svg text {
     font-family: inherit;

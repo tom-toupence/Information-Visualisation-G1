@@ -1,7 +1,3 @@
-// ============================================================================
-// SCATTER CHART - Visualisation D3 avec brush
-// ============================================================================
-
 class ScatterChart {
     constructor(containerId, options = {}) {
         this.containerId = containerId;
@@ -81,7 +77,7 @@ class ScatterChart {
             .style('fill', '#e2e2e2')
             .style('font-size', '14px')
             .style('font-weight', '600')
-            .text('Danceability →');
+            .text('Dansabilité →');
 
         g.append('text')
             .attr('transform', 'rotate(-90)')
@@ -92,12 +88,12 @@ class ScatterChart {
             .style('fill', '#e2e2e2')
             .style('font-size', '14px')
             .style('font-weight', '600')
-            .text('← Energy');
+            .text('Énergie →');
 
-        // Ajouter le brush EN PREMIER (il sera en dessous)
+        // Ajouter le brush
         this.addBrush(g, null, xScale, yScale, data);
 
-        // Créer les cercles APRÈS le brush (ils seront au-dessus)
+        // Créer les cercles
         const circles = g.selectAll('.scatter-dot')
             .data(data)
             .enter()
@@ -231,7 +227,6 @@ class ScatterChart {
 
         circles
             .on('mouseover', (event, d) => {
-                console.log('👆 Survol:', d.metadata.track_name);
                 d3.select(event.currentTarget)
                     .transition()
                     .duration(100)
@@ -250,11 +245,11 @@ class ScatterChart {
                         ${d.metadata.artist_name}
                     </div>
                     <div style="font-size: 11px; line-height: 1.6;">
-                        <div>Popularity: <strong>${d.metadata.popularity}</strong>/100</div>
-                        <div>Danceability: <strong>${(d.metadata.danceability * 100).toFixed(0)}%</strong></div>
-                        <div>Energy: <strong>${(d.metadata.energy * 100).toFixed(0)}%</strong></div>
-                        ${d.metadata.valence !== undefined ? `<div>Valence: <strong>${(d.metadata.valence * 100).toFixed(0)}%</strong></div>` : ''}
-                        ${d.metadata.tempo !== undefined ? `<div>Tempo: <strong>${d.metadata.tempo.toFixed(0)} BPM</strong></div>` : ''}
+                        <div>Popularité : <strong>${d.metadata.popularity}</strong>/100</div>
+                        <div>Dansabilité : <strong>${(d.metadata.danceability * 100).toFixed(0)}%</strong></div>
+                        <div>Énergie : <strong>${(d.metadata.energy * 100).toFixed(0)}%</strong></div>
+                        ${d.metadata.valence !== undefined ? `<div>Valence : <strong>${(d.metadata.valence * 100).toFixed(0)}%</strong></div>` : ''}
+                        ${d.metadata.tempo !== undefined ? `<div>Tempo : <strong>${d.metadata.tempo.toFixed(0)} BPM</strong></div>` : ''}
                     </div>
                 `)
                     .style('left', (event.pageX + 10) + 'px')
@@ -279,6 +274,24 @@ class ScatterChart {
      * @param {d3.Selection} svg - SVG principal
      */
     addClickDetails(circles, svg) {
+        // Créer le backdrop (fond flouté)
+        this.backdrop = d3.select('body')
+            .append('div')
+            .attr('class', 'details-backdrop')
+            .style('position', 'fixed')
+            .style('top', '0')
+            .style('left', '0')
+            .style('width', '100%')
+            .style('height', '100%')
+            .style('background', 'rgba(0, 0, 0, 0.6)')
+            .style('backdrop-filter', 'blur(8px)')
+            .style('-webkit-backdrop-filter', 'blur(8px)')
+            .style('display', 'none')
+            .style('z-index', '1999')
+            .on('click', () => {
+                this.hideTrackDetails();
+            });
+
         // Créer le panneau de détails (caché par défaut) - Stocké dans this.detailsPanel
         this.detailsPanel = d3.select('body')
             .append('div')
@@ -319,7 +332,7 @@ class ScatterChart {
                 d3.select(this).style('color', '#999');
             })
             .on('click', () => {
-                detailsPanel.style('display', 'none');
+                this.hideTrackDetails();
             });
 
         // Gestion du clic sur les cercles
@@ -328,15 +341,34 @@ class ScatterChart {
             this.showTrackDetails(d);
         });
 
-        // Fermer le panneau si on clique ailleurs
-        d3.select('body').on('click', () => {
-            detailsPanel.style('display', 'none');
-        });
-
         // Empêcher la fermeture si on clique dans le panneau
         detailsPanel.on('click', (event) => {
             event.stopPropagation();
         });
+    }
+
+    /**
+     * Cache le panneau de détails et le backdrop
+     */
+    hideTrackDetails() {
+        if (this.detailsPanel) {
+            this.detailsPanel
+                .transition()
+                .duration(200)
+                .style('opacity', 0)
+                .on('end', () => {
+                    this.detailsPanel.style('display', 'none');
+                });
+        }
+        if (this.backdrop) {
+            this.backdrop
+                .transition()
+                .duration(200)
+                .style('opacity', 0)
+                .on('end', () => {
+                    this.backdrop.style('display', 'none');
+                });
+        }
     }
 
     /**
@@ -347,10 +379,25 @@ class ScatterChart {
         const detailsPanel = this.detailsPanel;
         if (!detailsPanel) return;
         
-        // Afficher le panneau
-        detailsPanel.style('display', 'block');
+        // Afficher le backdrop (fond flouté) avec animation
+        if (this.backdrop) {
+            this.backdrop
+                .style('display', 'block')
+                .style('opacity', 0)
+                .transition()
+                .duration(300)
+                .style('opacity', 1);
+        }
         
-        // Effacer le contenu précédent (sauf le bouton close)
+        // Afficher le panneau avec animation
+        detailsPanel
+            .style('display', 'block')
+            .style('opacity', 0)
+            .transition()
+            .duration(300)
+            .style('opacity', 1);
+        
+        // Effacer le contenu précédent
         detailsPanel.selectAll(':not(.close-button)').remove();
 
             // Titre
@@ -375,9 +422,7 @@ class ScatterChart {
                 .style('font-size', '14px')
                 .style('font-weight', '600')
                 .style('margin-bottom', '20px')
-                .text(`Popularity: ${d.metadata.popularity}/100`);
-
-            // === INFOS DJ PERTINENTES ===
+                .text(`Popularité : ${d.metadata.popularity}/100`);
             
             // Grid layout pour les métriques principales
             const metricsGrid = detailsPanel.append('div')
@@ -395,19 +440,22 @@ class ScatterChart {
                     color: '#6eb6ff'
                 },
                 { 
-                    label: 'Key', 
-                    value: d.metadata.key !== undefined ? ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'][d.metadata.key] : 'N/A',
-                    unit: d.metadata.mode === 1 ? 'Major' : 'Minor',
+                    label: 'Tonalité', 
+                    // Spotify key: 0=C, 1=C#, 2=D, ..., 11=B (Pitch Class Notation)
+                    value: d.metadata.key !== undefined && d.metadata.key >= 0 && d.metadata.key <= 11 
+                        ? ['Do', 'Do#', 'Ré', 'Ré#', 'Mi', 'Fa', 'Fa#', 'Sol', 'Sol#', 'La', 'La#', 'Si'][d.metadata.key] 
+                        : 'N/A',
+                    unit: d.metadata.mode === 1 ? 'Majeur' : 'Mineur',
                     color: '#ff6ad5'
                 },
                 { 
-                    label: 'Energy', 
+                    label: 'Énergie', 
                     value: `${(d.metadata.energy * 100).toFixed(0)}`,
                     unit: '%',
                     color: '#ff6ad5'
                 },
                 { 
-                    label: 'Dance', 
+                    label: 'Dansabilité', 
                     value: `${(d.metadata.danceability * 100).toFixed(0)}`,
                     unit: '%',
                     color: '#6eb6ff'
@@ -419,7 +467,7 @@ class ScatterChart {
                     color: '#5be7a9'
                 },
                 { 
-                    label: 'Loudness', 
+                    label: 'Volume', 
                     value: `${(d.metadata.loudness || 0).toFixed(1)}`,
                     unit: 'dB',
                     color: '#FFB84D'
@@ -459,7 +507,7 @@ class ScatterChart {
                 .style('color', '#8e98c9')
                 .style('font-size', '13px')
                 .style('font-weight', '600')
-                .text('Transition Suggestions');
+                .text('Suggestions de Transition');
 
             const djTips = detailsPanel.append('div')
                 .style('padding', '12px')
@@ -477,33 +525,29 @@ class ScatterChart {
             const dance = d.metadata.danceability * 100;
             const key = d.metadata.key;
 
-            if (tempo >= 120 && tempo <= 130) {
-                suggestions += `<div style="margin-bottom: 8px;">✓ <strong>Good for house music transitions</strong> (${tempo.toFixed(0)} BPM ideal)</div>`;
-            } else if (tempo >= 140) {
-                suggestions += `<div style="margin-bottom: 8px;">✓ <strong>High energy track</strong> - works for peak time</div>`;
-            } else if (tempo < 100) {
-                suggestions += `<div style="margin-bottom: 8px;">✓ <strong>Slow groove</strong> - good for warm-up or cool-down</div>`;
-            }
-
             if (energy > 70 && dance > 70) {
-                suggestions += `<div style="margin-bottom: 8px;">🔥 <strong>Peak hour banger</strong> - high energy + very danceable</div>`;
+                suggestions += `<div style="margin-bottom: 8px;">🔥 <strong>Morceau énergique</strong> - haute énergie + très dansant</div>`;
             } else if (energy < 40 && dance < 40) {
-                suggestions += `<div style="margin-bottom: 8px;">🌙 <strong>Chill vibe</strong> - perfect for lounge/ambient sets</div>`;
+                suggestions += `<div style="margin-bottom: 8px;">🌙 <strong>Ambiance chill</strong> - parfait pour lounge/ambient sets</div>`;
             }
 
-            if (key !== undefined) {
-                const keyNames = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+            if (key !== undefined && key >= 0 && key <= 11) {
+                // Spotify key: 0=Do, 1=Do#, 2=Ré, 3=Ré#, 4=Mi, 5=Fa, 6=Fa#, 7=Sol, 8=Sol#, 9=La, 10=La#, 11=Si
+                const keyNames = ['Do', 'Do#', 'Ré', 'Ré#', 'Mi', 'Fa', 'Fa#', 'Sol', 'Sol#', 'La', 'La#', 'Si'];
                 const currentKey = keyNames[key];
+                
+                // Calcul des tonalités compatibles pour DJ mixing
                 const compatibleKeys = [
-                    keyNames[(key + 7) % 12],  // Perfect fifth
-                    keyNames[(key + 5) % 12],  // Perfect fourth
-                    keyNames[(key + 2) % 12],  // Major second
-                    keyNames[(key - 2 + 12) % 12]  // Minor seventh
+                    keyNames[(key + 7) % 12],      
+                    keyNames[(key + 5) % 12],      
+                    keyNames[(key + 2) % 12],     
+                    keyNames[(key - 2 + 12) % 12]  
                 ];
-                suggestions += `<div style="margin-bottom: 8px;">🎹 <strong>Compatible keys:</strong> ${compatibleKeys.join(', ')}</div>`;
+                
+                suggestions += `<div style="margin-bottom: 8px;">🎹 <strong>Tonalités compatibles :</strong> ${compatibleKeys.join(', ')}</div>`;
             }
 
-            suggestions += `<div>💡 <strong>BPM range:</strong> ${(tempo * 0.95).toFixed(0)}-${(tempo * 1.05).toFixed(0)} BPM works well</div>`;
+            suggestions += `<div>💡 <strong>Plage de tempo :</strong> ${(tempo * 0.95).toFixed(0)}-${(tempo * 1.05).toFixed(0)} BPM recommandé</div>`;
 
             djTips.html(suggestions);
 
@@ -517,9 +561,9 @@ class ScatterChart {
                 .style('color', '#aaa')
                 .style('text-align', 'center')
                 .html(`
-                    <strong style="color: #8e98c9;">${d.metadata.genre || 'Unknown'}</strong> • 
+                    <strong style="color: #8e98c9;">${d.metadata.genre || 'Inconnu'}</strong> • 
                     ${d.metadata.year || 'N/A'} • 
-                    ${d.metadata.acousticness > 0.5 ? 'Acoustic' : 'Electronic'} • 
+                    ${d.metadata.acousticness > 0.5 ? 'Acoustique' : 'Électronique'} • 
                     ${d.metadata.liveness > 0.8 ? 'Live' : 'Studio'}
                 `);
     }
@@ -627,13 +671,10 @@ class ScatterChart {
             .style('stroke', '#7972a8')
             .style('stroke-width', '2px');
 
-        // L'overlay doit rester actif pour capturer les événements de brush
-        // Les cercles recevront les événements mouseover car ils sont au-dessus
         this.brushGroup.selectAll('.overlay')
             .style('fill', 'transparent')
             .style('cursor', 'crosshair');
         
-        console.log('Brush créé et activé');
     }
 
     /**
@@ -658,17 +699,15 @@ class ScatterChart {
         const svg = d3.select(container).select('svg');
         const g = svg.select('g');
         
-        const radius = Math.max(d.size * 1.2, 5); // Taille réduite pour éviter les chevauchements
+        const radius = Math.max(d.size * 1.2, 5); 
         
-        // Données du mini camembert avec valeurs RÉELLES (pas normalisées)
-        // Danceability + Energy + Chill (complément) = 100%
         const danceability = (d.metadata.danceability || 0) * 100;
         const energy = (d.metadata.energy || 0) * 100;
         const chill = 100 - danceability - energy; // Le "reste" = calme/repos du morceau
         
         const rawData = [
-            { label: 'Danceability', value: danceability, color: '#6eb6ff' },
-            { label: 'Energy', value: energy, color: '#ff6ad5' },
+            { label: 'Dansabilité', value: danceability, color: '#6eb6ff' },
+            { label: 'Énergie', value: energy, color: '#ff6ad5' },
             { label: 'Chill', value: Math.max(chill, 0), color: '#555555' } // Gris pour le calme
         ];
         
@@ -772,24 +811,24 @@ class ScatterChart {
             .style('border-bottom', '1px solid #555')
             .html(`
                 <div style="font-weight: 600; font-size: 14px; color: #7972a8; margin-bottom: 4px;">
-                    Selection
+                    Sélection
                 </div>
                 <div style="font-size: 18px; font-weight: 600; color: #e2e2e2;">
-                    ${selectedData.length} tracks
+                    ${selectedData.length} pistes
                 </div>
                 <div style="font-size: 11px; color: #aaa;">
-                    ${((selectedData.length / totalCount) * 100).toFixed(1)}% of total
+                    ${((selectedData.length / totalCount) * 100).toFixed(1)}% du total
                 </div>
             `);
 
         // Compter par genre
         const genreCounts = new Map();
         selectedData.forEach(d => {
-            const genre = d.metadata.genre || 'Unknown';
+            const genre = d.metadata.genre || 'Inconnu';
             genreCounts.set(genre, (genreCounts.get(genre) || 0) + 1);
         });
 
-        // Convertir en tableau et trier (Top 6 + Others)
+        // Convertir en tableau et trier
         const allGenres = Array.from(genreCounts, ([genre, count]) => ({ genre, count }))
             .sort((a, b) => b.count - a.count);
         
@@ -797,7 +836,7 @@ class ScatterChart {
         const othersCount = allGenres.slice(6).reduce((sum, g) => sum + g.count, 0);
         
         if (othersCount > 0) {
-            topGenres.push({ genre: 'Others', count: othersCount });
+            topGenres.push({ genre: 'Autres', count: othersCount });
         }
 
         // Palette de couleurs professionnelle
@@ -813,7 +852,7 @@ class ScatterChart {
             .style('font-weight', '600')
             .text('Genre Distribution');
 
-        // Créer le camembert (taille encore réduite)
+        // Créer le camembert
         const pieWidth = 200;
         const pieHeight = 150;
         const pieRadius = Math.min(pieWidth, pieHeight) / 2 - 15;

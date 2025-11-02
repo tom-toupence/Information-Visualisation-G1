@@ -1,21 +1,48 @@
-// ============================================================================
-// DASHBOARD.JS - Mini preview du scatter plot
-// ============================================================================
-
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     console.log('Dashboard SPOTIMIX chargé');
+
+    // Charger les genres disponibles depuis music_genres_tree.json
+    const genreSelect = document.getElementById('genre-select');
+    if (genreSelect && window.dataLoader) {
+        console.log('Chargement des genres disponibles...');
+        try {
+            const genres = await window.dataLoader.getAvailableGenres();
+            console.log(`${genres.length} genres chargés depuis music_genres_tree.json`);
+            
+            // Vider le sélecteur et ajouter l'option "Tous"
+            genreSelect.innerHTML = '<option value="">Tous les genres</option>';
+            
+            // Ajouter tous les genres triés
+            genres.forEach(genre => {
+                const option = document.createElement('option');
+                option.value = genre;
+                option.textContent = genre.charAt(0).toUpperCase() + genre.slice(1);
+                genreSelect.appendChild(option);
+            });
+
+            // Restaurer la préférence sauvegardée
+            const prefs = window.dataLoader.getUserPreferences();
+            if (prefs.genre) {
+                genreSelect.value = prefs.genre;
+            }
+        } catch (error) {
+            console.error('Erreur chargement genres:', error);
+        }
+
+        // Gérer le changement de genre
+        genreSelect.addEventListener('change', (e) => {
+            const selectedGenre = e.target.value;
+            console.log('Genre sélectionné:', selectedGenre);
+            
+            // Sauvegarder la préférence
+            if (window.dataLoader) {
+                window.dataLoader.saveUserPreferences({ genre: selectedGenre });
+            }
+        });
+    }
 
     // Créer un mini scatter preview dans le panel--a
     createScatterPreview();
-
-    // Gérer le filtre de genre (optionnel pour l'instant)
-    const genreSelect = document.getElementById('genre-select');
-    if (genreSelect) {
-        genreSelect.addEventListener('change', (e) => {
-            console.log('Genre sélectionné:', e.target.value);
-            // TODO: Filtrer les données selon le genre
-        });
-    }
 });
 
 /**
@@ -114,6 +141,4 @@ function createScatterPreview() {
         .duration(800)
         .delay((d, i) => i * 5)
         .attr('r', 3);
-
-    console.log('Preview scatter créé');
 }

@@ -1,8 +1,3 @@
-// ============================================================================
-// SCATTER APP - Application principale
-// Orchestre la pipeline : Processor → Mapper → Chart
-// ============================================================================
-
 // Instances globales
 const processor = new ScatterDataProcessor();
 const mapper = new ScatterDataMapper();
@@ -62,11 +57,11 @@ async function renderScatter(year, genre = '') {
         }
 
         // ÉTAPE 2 : Mapper les données pour la visualisation
-        console.log('🔄 Étape 2 : ScatterMapper...');
+        console.log('Étape 2 : ScatterMapper...');
         const mappedData = mapper.mapForVisualization(rawData);
 
         // ÉTAPE 3 : Créer et afficher le graphique
-        console.log('🔄 Étape 3 : ScatterChart...');
+        console.log('Étape 3 : ScatterChart...');
         // Le ScatterChart prend maintenant automatiquement toute la place disponible
         currentChart = new ScatterChart('scatter-viz');
         
@@ -89,13 +84,33 @@ async function renderScatter(year, genre = '') {
 // ============================================================================
 
 // Attendre que le DOM soit chargé
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     console.log('Initialisation du Scatter Plot...');
     console.log('Pipeline : DataLoader → ScatterProcessor → ScatterMapper → ScatterChart');
 
     // Récupérer les sélecteurs
     const yearSelect = document.getElementById('year-select');
     const genreSelect = document.getElementById('genre-select');
+
+    // Charger les genres disponibles depuis music_genres_tree.json
+    console.log('Chargement des genres disponibles...');
+    try {
+        const genres = await window.dataLoader.getAvailableGenres();
+        console.log(`${genres.length} genres chargés depuis music_genres_tree.json`);
+        
+        // Vider le sélecteur et ajouter l'option "Tous"
+        genreSelect.innerHTML = '<option value="">Tous les genres</option>';
+        
+        // Ajouter tous les genres triés
+        genres.forEach(genre => {
+            const option = document.createElement('option');
+            option.value = genre;
+            option.textContent = genre.charAt(0).toUpperCase() + genre.slice(1);
+            genreSelect.appendChild(option);
+        });
+    } catch (error) {
+        console.error('Erreur chargement genres:', error);
+    }
 
     // Charger les préférences utilisateur depuis le LocalStorage
     const prefs = window.dataLoader.getUserPreferences();

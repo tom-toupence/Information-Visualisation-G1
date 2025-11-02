@@ -1,8 +1,3 @@
-// ============================================================================
-// DATA PROCESSOR - Traitement et filtrage des données
-// Utilise DataLoader pour le chargement, se concentre sur le traitement
-// ============================================================================
-
 class ScatterDataProcessor {
     constructor() {
         // DataLoader sera accessible via window.dataLoader (chargé avant)

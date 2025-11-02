@@ -64,28 +64,39 @@
 
         <!-- Contrôles spécifiques aux chansons -->
         <div class="songs-controls-group" id="songs-controls" style="display: none;">
-            <label class="select">
-                <select id="songs-sort-select">
-                    <option value="popularity,desc" selected>Popularité (↓)</option>
-                    <option value="popularity,asc">Popularité (↑)</option>
-                    <option value="danceability,desc">Danceability (↓)</option>
-                    <option value="danceability,asc">Danceability (↑)</option>
-                    <option value="energy,desc">Energy (↓)</option>
-                    <option value="energy,asc">Energy (↑)</option>
-                    <option value="year,desc">Année (↓)</option>
-                    <option value="year,asc">Année (↑)</option>
-                    <option value="name,asc">Nom (A-Z)</option>
-                </select>
-            </label>
+            <!-- Boutons de tri par catégorie -->
+            <div class="sort-categories">
+                <span class="sort-label">Trier par:</span>
+                <button class="sort-btn active" data-sort="popularity" id="sort-popularity">
+                    Popularité
+                </button>
+                <button class="sort-btn" data-sort="danceability" id="sort-danceability">
+                    Danceability
+                </button>
+                <button class="sort-btn" data-sort="energy" id="sort-energy">
+                    Energy
+                </button>
+            </div>
 
+            <!-- Boutons d'ordre avec flèches -->
+            <div class="sort-order">
+                <button class="order-btn active" data-order="desc" id="order-desc">
+                    ↓
+                </button>
+                <button class="order-btn" data-order="asc" id="order-asc">
+                    ↑
+                </button>
+            </div>
+
+            <!-- Filtres d'année -->
             <div class="year-filter">
+                <span class="sort-label">Filtrer par année:</span>
                 <label class="year-input">
-                    De: <input type="number" id="year-min" min="1900" max="2025" placeholder="Année min">
+                    De: <input type="number" id="year-min" min="2000" max="2023">
                 </label>
                 <label class="year-input">
-                    À: <input type="number" id="year-max" min="1900" max="2025" placeholder="Année max">
+                    À: <input type="number" id="year-max" min="2000" max="2023">
                 </label>
-                <button id="clear-year-filter" class="btn-clear">Effacer</button>
             </div>
         </div>
     </header>
@@ -162,10 +173,10 @@
 
             // Nouveaux contrôles pour les chansons
             const songsControls = document.getElementById('songs-controls');
-            const songsSortSelect = document.getElementById('songs-sort-select');
+            const sortButtons = document.querySelectorAll('.sort-btn');
+            const orderButtons = document.querySelectorAll('.order-btn');
             const yearMinInput = document.getElementById('year-min');
             const yearMaxInput = document.getElementById('year-max');
-            const clearYearButton = document.getElementById('clear-year-filter');
 
             // Fonction pour rafraîchir la visualisation (préserve la navigation)
             async function refreshVisualization() {
@@ -227,14 +238,43 @@
                 await refreshVisualization(); // Préserve la navigation - IMPORTANT !
             });
 
-            // Écouter les changements de tri des chansons
-            songsSortSelect.addEventListener('change', async (e) => {
-                console.log(`🔍 [DEBUG] Sélecteur de tri changé, valeur:`, e.target.value);
-                const [sortBy, sortOrder] = e.target.value.split(',');
-                console.log(`🔍 [DEBUG] Valeurs parsées: sortBy=${sortBy}, sortOrder=${sortOrder}`);
-                console.log(`🔄 Changement de tri des chansons: ${sortBy} (${sortOrder})`);
-                treeViz.setSongsSorting(sortBy, sortOrder);
+            // Variables pour stocker les paramètres de tri actuels
+            let currentSortBy = 'popularity';
+            let currentSortOrder = 'desc';
+
+            // Fonction pour mettre à jour le tri
+            async function updateSorting() {
+                console.log(`🔄 Changement de tri des chansons: ${currentSortBy} (${currentSortOrder})`);
+                treeViz.setSongsSorting(currentSortBy, currentSortOrder);
                 await refreshVisualization(); // Préserve la navigation
+            }
+
+            // Écouter les clics sur les boutons de catégorie de tri
+            sortButtons.forEach(button => {
+                button.addEventListener('click', async (e) => {
+                    // Désactiver tous les boutons de catégorie
+                    sortButtons.forEach(btn => btn.classList.remove('active'));
+                    // Activer le bouton cliqué
+                    e.target.classList.add('active');
+
+                    currentSortBy = e.target.dataset.sort;
+                    console.log(`🎯 Nouvelle catégorie de tri: ${currentSortBy}`);
+                    await updateSorting();
+                });
+            });
+
+            // Écouter les clics sur les boutons d'ordre
+            orderButtons.forEach(button => {
+                button.addEventListener('click', async (e) => {
+                    // Désactiver tous les boutons d'ordre
+                    orderButtons.forEach(btn => btn.classList.remove('active'));
+                    // Activer le bouton cliqué
+                    e.target.classList.add('active');
+
+                    currentSortOrder = e.target.dataset.order;
+                    console.log(`📊 Nouvel ordre de tri: ${currentSortOrder}`);
+                    await updateSorting();
+                });
             });
 
             // Fonction pour appliquer les filtres d'années avec debounce
@@ -256,14 +296,7 @@
             yearMinInput.addEventListener('input', applyYearFilter);
             yearMaxInput.addEventListener('input', applyYearFilter);
 
-            // Bouton pour effacer les filtres d'années
-            clearYearButton.addEventListener('click', async () => {
-                yearMinInput.value = '';
-                yearMaxInput.value = '';
-                console.log('🗑️ Effacement des filtres d\'années');
-                treeViz.setSongsYearFilter(null, null);
-                await refreshVisualization();
-            });
+            // Note: L'effacement des filtres d'années se fait maintenant en vidant simplement les champs
 
             console.log('✅ Contrôles de métriques et de titres configurés');
 

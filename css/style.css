@@ -133,65 +133,108 @@ body {
 /* Groupe de contrôles spécifique aux chansons */
 .songs-controls-group {
   display: flex;
-  gap: 15px;
+  flex-wrap: wrap;
+  gap: 20px;
   align-items: center;
-  padding: 12px 16px;
-  background: rgba(67, 76, 94, 0.3);
-  border-radius: 8px;
+  padding: 16px 20px;
+  background: rgba(67, 76, 94, 0.4);
+  border-radius: 12px;
   margin: 10px 16px;
   border: 1px solid rgba(128, 139, 150, 0.2);
+  box-shadow: var(--shadow-1);
 }
+
+/* Conteneurs de tri */
+.sort-categories, .sort-order {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sort-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-right: 8px;
+}
+
+/* Boutons de tri par catégorie */
+.sort-btn, .order-btn {
+  padding: 8px 12px;
+  background: rgba(55, 62, 77, 0.6);
+  border: 1px solid rgba(128, 139, 150, 0.3);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.order-btn {
+  padding: 8px 10px;
+  min-width: 36px;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.sort-btn:hover, .order-btn:hover,
+.sort-btn.active, .order-btn.active {
+  background: var(--accent-1);
+  border-color: var(--accent-1);
+  color: white;
+  font-weight: 600;
+}
+
+
+
+/* Couleurs uniformes pour tous les boutons */
+
+
 
 /* Filtre par années */
 .year-filter {
   display: flex;
-  gap: 10px;
+  gap: 12px;
   align-items: center;
+  padding: 8px 12px;
+  background: rgba(45, 52, 64, 0.5);
+  border-radius: 8px;
+  border: 1px solid rgba(128, 139, 150, 0.2);
 }
 
 .year-input {
   display: flex;
   align-items: center;
-  gap: 6px;
-  color: var(--text-muted);
+  gap: 8px;
+  color: var(--text);
   font-size: 14px;
+  font-weight: 500;
 }
 
 .year-input input {
-  width: 80px;
-  padding: 6px 8px;
-  background: var(--bg);
+  width: 90px;
+  padding: 8px 12px;
+  background: rgba(55, 62, 77, 0.6);
   border: 1px solid rgba(128, 139, 150, 0.3);
-  border-radius: 6px;
+  border-radius: 8px;
   color: var(--text);
   font-size: 13px;
-  transition: border-color 0.2s ease;
+  transition: all 0.2s ease;
 }
 
 .year-input input:focus {
   outline: none;
-  border-color: var(--accent);
-  box-shadow: 0 0 0 2px rgba(129, 161, 193, 0.2);
+  border-color: var(--accent-1);
+  background: rgba(75, 85, 105, 0.8);
 }
 
 .year-input input::placeholder {
-  color: var(--text-muted);
-}
-
-.btn-clear {
-  padding: 6px 12px;
-  background: rgba(191, 97, 106, 0.2);
-  border: 1px solid rgba(191, 97, 106, 0.3);
-  border-radius: 6px;
-  color: #bf616a;
-  font-size: 13px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-clear:hover {
-  background: rgba(191, 97, 106, 0.4);
-  color: var(--text);
+  color: rgba(226, 226, 226, 0.6);
 }
 
 /* ============================================================================

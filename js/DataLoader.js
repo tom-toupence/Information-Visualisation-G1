@@ -19,6 +19,13 @@ class DataLoader {
         this.isLoading = false;
         // Promise de chargement en cours
         this.loadingPromise = null;
+        
+        // Préchargement automatique des données au démarrage
+        this.loadSpotifyData().then(() => {
+            console.log('📦 DataLoader initialisé avec préchargement des données');
+        }).catch(error => {
+            console.warn('⚠️ Préchargement échoué, chargement à la demande:', error.message);
+        });
     }
 
     /**

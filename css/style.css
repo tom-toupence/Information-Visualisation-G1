@@ -23,6 +23,14 @@
   --shadow-1: 0 6px 20px rgba(0,0,0,.35);
   --shadow-2: inset 0 0 0 1px rgba(255,255,255,0.05);
   --gap: 22px;
+
+    /* Couleurs pour la heatmap (basées sur la popularité) */
+  --heatmap-no-data: #2B2F41;    /* Pas de données */
+  --heatmap-0-20: #3F4C6B;       /* Popularité 0-20 */
+  --heatmap-20-40: #5A5EA0;      /* Popularité 20-40 */
+  --heatmap-40-60: #865FBF;      /* Popularité 40-60 */
+  --heatmap-60-80: #C157B8;      /* Popularité 60-80 */
+  --heatmap-80-100: #FF3FBF;     /* Popularité 80-100 */
 }
 
 /* Reset léger */

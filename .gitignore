@@ -1,1 +1,10 @@
 data/spotify_data.csv
+<<<<<<< HEAD
+=======
+node_modules/
+package-lock.json
+
+# Large data files
+public/spotify_data.csv
+public/indexByGenreSongs.json
+>>>>>>> main

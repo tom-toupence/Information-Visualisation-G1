@@ -25,14 +25,17 @@
     <a class="side-icon home" href="#" title="Dashboard">
       <i class="fa-solid fa-house"></i>
     </a>
+    <a class="side-icon" href="heatmap.html" title="Heatmap">
+        <i class="fa-solid fa-border-all"></i>
+    </a>
     <a class="side-icon" href="#" title="Graph 2">
-      <i class="fa-solid fa-chart-pie"></i>
+        <i class="fa-solid fa-superpowers"></i>
     </a>
     <a class="side-icon" href="#" title="Graph 3">
-      <i class="fa-solid fa-sliders"></i>
+        <i class="fa-solid fa-sliders"></i>
     </a>
-        <a class="side-icon" href="scatter.html" title="Scatter Plot">
-      <i class="fa-solid fa-chart-scatter"></i>
+    <a class="side-icon" href="scatter.html" title="Scatter Plot">
+        <i class="fa-solid fa-chart-pie"></i>
     </a>
   </aside>
 
@@ -50,10 +53,10 @@
   <main class="dashboard">
   
 
-    <a class="panel panel--a" href="#" aria-label="Graph 2 (à venir)">
-      <div class="panel__title">Graph 1</div>
-      <div class="panel__body">
-        <div class="coming-soon">🚧 Bientôt disponible</div>
+    <a class="panel panel--a" href="heatmap.html" aria-label="Ouvrir Heatmap">
+      <div class="panel__title">Heatmap - Popularité des artistes</div>
+      <div class="panel__body" id="preview-heatmap">
+        <!-- Mini preview généré par JS -->
       </div>
     </a>
 
@@ -80,7 +83,7 @@
   </main>
 
   <!-- DataLoader pour préférences persistantes -->
-  <script src="data/DataLoader.js"></script>
+  <script src="js/DataLoader.js"></script>
   <script src="js/dashboard.js"></script>
   
   <script>

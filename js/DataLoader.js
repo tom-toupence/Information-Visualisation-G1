@@ -19,12 +19,96 @@ class DataLoader {
         this.isLoading = false;
         // Promise de chargement en cours
         this.loadingPromise = null;
+        // IndexedDB
+        this.dbName = 'SpotimixDB';
+        this.dbVersion = 1;
+        this.storeName = 'spotify_tracks';
+        this.db = null;
+        this.dbReady = null;
         
-        // Préchargement automatique des données au démarrage
-        this.loadSpotifyData().then(() => {
-            console.log('📦 DataLoader initialisé avec préchargement des données');
-        }).catch(error => {
-            console.warn('⚠️ Préchargement échoué, chargement à la demande:', error.message);
+        // Initialiser IndexedDB de manière lazy
+        this.dbReady = this.initIndexedDB();
+    }
+
+    /**
+     * Initialise la base de données IndexedDB
+     */
+    async initIndexedDB() {
+        return new Promise((resolve, reject) => {
+            const request = indexedDB.open(this.dbName, this.dbVersion);
+            
+            request.onerror = () => {
+                console.warn('IndexedDB non disponible, cache mémoire uniquement');
+                resolve(null);
+            };
+            
+            request.onsuccess = (event) => {
+                this.db = event.target.result;
+                console.log('IndexedDB initialisée');
+                resolve(this.db);
+            };
+            
+            request.onupgradeneeded = (event) => {
+                const db = event.target.result;
+                if (!db.objectStoreNames.contains(this.storeName)) {
+                    db.createObjectStore(this.storeName);
+                    console.log('ObjectStore créé dans IndexedDB');
+                }
+            };
+        });
+    }
+
+    /**
+     * Sauvegarde les données dans IndexedDB
+     */
+    async saveToIndexedDB(key, data) {
+        if (!this.db) return false;
+        
+        return new Promise((resolve) => {
+            try {
+                const transaction = this.db.transaction([this.storeName], 'readwrite');
+                const store = transaction.objectStore(this.storeName);
+                const request = store.put(data, key);
+                
+                request.onsuccess = () => {
+                    console.log('Données sauvegardées dans IndexedDB');
+                    resolve(true);
+                };
+                
+                request.onerror = () => {
+                    console.warn('Échec sauvegarde IndexedDB');
+                    resolve(false);
+                };
+            } catch (error) {
+                console.warn('Erreur IndexedDB:', error.message);
+                resolve(false);
+            }
+        });
+    }
+
+    /**
+     * Récupère les données depuis IndexedDB
+     */
+    async getFromIndexedDB(key) {
+        if (!this.db) return null;
+        
+        return new Promise((resolve) => {
+            try {
+                const transaction = this.db.transaction([this.storeName], 'readonly');
+                const store = transaction.objectStore(this.storeName);
+                const request = store.get(key);
+                
+                request.onsuccess = () => {
+                    resolve(request.result || null);
+                };
+                
+                request.onerror = () => {
+                    resolve(null);
+                };
+            } catch (error) {
+                console.warn('Erreur lecture IndexedDB:', error.message);
+                resolve(null);
+            }
         });
     }
 
@@ -44,31 +128,48 @@ class DataLoader {
     async loadSpotifyData() {
         const cacheKey = 'spotify_data';
 
-        // Vérifier le cache
+        // 1. Vérifier le cache mémoire (le plus rapide)
         if (this.cache.has(cacheKey)) {
-            console.log('Using memory cache');
+            console.log('⚡ Cache mémoire HIT: restauration instantanée');
             return this.cache.get(cacheKey);
         }
 
-        // 2. Si un chargement est déjà en cours, attendre sa fin
+        // 2. Si un chargement est déjà en cours, attendre sa fin 
         if (this.isLoading && this.loadingPromise) {
-            console.log('Waiting for ongoing load...');
+            console.log('⏳ Chargement déjà en cours, réutilisation...');
             return this.loadingPromise;
         }
 
-        // 3. Démarrer le chargement du CSV
+        // 3. Démarrer un nouveau chargement
         this.isLoading = true;
-        console.log('Loading Spotify data from CSV (this may take a few seconds)...');
         
         this.loadingPromise = (async () => {
             try {
+                // Attendre que IndexedDB soit prête
+                await this.dbReady;
+                
+                // Vérifier IndexedDB
+                const cachedData = await this.getFromIndexedDB(cacheKey);
+                if (cachedData && Array.isArray(cachedData) && cachedData.length > 0) {
+                    console.log(`IndexedDB HIT: ${cachedData.length} pistes restaurées (~0.5s)`);
+                    this.cache.set(cacheKey, cachedData);
+                    return cachedData;
+                }
+
+                // 4. Charger le CSV
+                const startTime = performance.now();
                 const rawData = await d3.csv(this.dataPath);
                 const spotifyTracks = this.parseSpotifyData(rawData);
+                const loadTime = ((performance.now() - startTime) / 1000).toFixed(1);
                 
-                // Sauvegarder UNIQUEMENT dans le cache mémoire
+                // Sauvegarder dans le cache mémoire
                 this.cache.set(cacheKey, spotifyTracks);
                 
-                console.log(`Loaded ${spotifyTracks.length} tracks (${(JSON.stringify(spotifyTracks).length / 1024 / 1024).toFixed(2)} MB in memory)`);
+                // Sauvegarder dans IndexedDB pour les prochaines visites
+                await this.saveToIndexedDB(cacheKey, spotifyTracks);
+                
+                console.log(`${spotifyTracks.length} pistes chargées en ${loadTime}s`);
+                console.log('Prochaine visite: chargement instantané via IndexedDB');
                 return spotifyTracks;
             } finally {
                 this.isLoading = false;

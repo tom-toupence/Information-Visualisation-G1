@@ -1,0 +1,21 @@
+{
+    "name": "information-visualisation-g1",
+    "version": "1.0.0",
+    "description": "Projet de visualisation d'informations avec D3.js",
+    "scripts": {
+        "serve": "http-server public -p 3000 -o"
+    },
+    "keywords": [
+        "d3.js",
+        "visualization",
+        "data"
+    ],
+    "author": "",
+    "license": "MIT",
+    "devDependencies": {
+        "http-server": "^14.1.1"
+    },
+    "dependencies": {
+        "d3": "^7.8.5"
+    }
+}

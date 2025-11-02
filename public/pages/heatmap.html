@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="fr">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPOTIMIX - Heatmap</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+</head>
+
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <a class="side-icon home" href="../index.html" title="Dashboard">
+            <i class="fa-solid fa-house"></i>
+        </a>
+        <a class="side-icon" href="heatmap.html" title="Heatmap">
+            <i class="fa-solid fa-border-all"></i>
+        </a>
+        <a class="side-icon" href="#" title="Graph 2">
+            <i class="fa-solid fa-chart-pie"></i>
+        </a>
+        <a class="side-icon" href="#" title="Graph 3">
+            <i class="fa-solid fa-sliders"></i>
+        </a>
+        <a class="side-icon" href="../scatter.html" title="Scatter Plot">
+            <i class="fa-solid fa-chart-scatter"></i>
+        </a>
+    </aside>
+
+    <!-- Topbar -->
+    <header class="topbar">
+        <h1 class="brand">SPOTIMIX</h1>
+        <div class="toolbar">
+            <label class="select">
+                <select id="genre-select">
+                    <option>Choisir un genre</option>
+                    <!-- Les genres seront chargés dynamiquement -->
+                </select>
+            </label>
+            <label class="select">
+                <select id="year-min-select">
+                    <option value="">Min</option>
+                    <!-- Les années seront chargées dynamiquement -->
+                </select>
+            </label>
+            <label class="select">
+                <select id="year-max-select">
+                    <option value="">Max</option>
+                    <!-- Les années seront chargées dynamiquement -->
+                </select>
+            </label>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="dashboard" style="grid-template-columns: 1fr; grid-template-rows: 1fr;">
+        <div class="panel" style="grid-column: 1; grid-row: 1;">
+            <div class="panel__title">Heatmap - Analyse des caractéristiques musicales</div>
+            <div class="panel__body">
+                <div id="heatmap-container" style="width: 100%; height: 100%;"></div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Script for Heatmap -->
+    <script type="module">
+        console.log('🎨 Heatmap page loaded');
+
+        // Import nécessaire si vous utilisez le système de modules
+        // Sinon, assurez-vous que dashboard-browser.js contient les classes nécessaires
+        
+        // Variables globales pour la plage d'années
+        let globalMinYear = Infinity;
+        let globalMaxYear = -Infinity;
+        
+        // Variables globales pour les filtres actifs
+        let allTracks = []; // Stocker toutes les pistes
+        let currentGenreFilter = 'Choisir un genre';
+        let currentYearMin = null; // Année minimale du filtre
+        let currentYearMax = null; // Année maximale du filtre
+        
+        // Fonction principale pour initialiser la heatmap
+        async function initHeatmap() {
+            try {
+                console.log('🔄 Initialisation de la heatmap...');
+                
+                // Charger les données depuis le CSV
+                const data = await d3.csv('../spotify_data.csv');
+                
+                // Parser les données
+                const tracks = data.map(row => ({
+                    artist_name: row.artist_name || '',
+                    track_name: row.track_name || '',
+                    track_id: row.track_id || '',
+                    popularity: parseFloat(row.popularity) || 0,
+                    year: parseInt(row.year) || 2000,
+                    genre: row.genre || 'unknown'
+                }));
+
+                console.log(`📊 ${tracks.length} pistes chargées`);
+
+                // Stocker toutes les pistes globalement pour les filtres
+                allTracks = tracks;
+
+                // Calculer la plage d'années globale (une seule fois)
+                // Utiliser reduce au lieu de Math.min/max pour éviter le stack overflow avec beaucoup de données
+                globalMinYear = tracks.reduce((min, t) => !isNaN(t.year) && t.year < min ? t.year : min, Infinity);
+                globalMaxYear = tracks.reduce((max, t) => !isNaN(t.year) && t.year > max ? t.year : max, -Infinity);
+                console.log(`📅 Plage d'années: ${globalMinYear} - ${globalMaxYear}`);
+
+                // Traiter les données pour la heatmap
+                const heatmapData = processHeatmapData(tracks);
+                console.log(`📈 ${heatmapData.length} cellules de heatmap créées`);
+
+                // Créer et afficher la heatmap
+                renderHeatmap(heatmapData, tracks);
+
+                // Setup des filtres
+                setupGenreFilter(tracks);
+                setupYearFilter(tracks);
+
+                console.log('✅ Heatmap initialisée avec succès');
+            } catch (error) {
+                console.error('❌ Erreur lors de l\'initialisation:', error);
+                showError('Erreur lors du chargement de la heatmap');
+            }
+        }
+
+        // Fonction pour traiter les données de la heatmap
+        function processHeatmapData(tracks, genre = null, yearMin = null, yearMax = null) {
+            // Filtrer par genre si spécifié
+            let filteredTracks = tracks;
+            if (genre && genre !== 'Choisir un genre') {
+                filteredTracks = filteredTracks.filter(
+                    track => track.genre.toLowerCase() === genre.toLowerCase()
+                );
+            }
+            
+            // Filtrer par plage d'années si spécifié
+            if (yearMin !== null || yearMax !== null) {
+                filteredTracks = filteredTracks.filter(track => {
+                    const trackYear = track.year;
+                    const meetsMin = yearMin === null || trackYear >= yearMin;
+                    const meetsMax = yearMax === null || trackYear <= yearMax;
+                    return meetsMin && meetsMax;
+                });
+            }
+
+            // Grouper par artiste et année
+            const groupedData = new Map();
+
+            filteredTracks.forEach(track => {
+                const key = `${track.artist_name}|${track.year}`;
+                
+                if (!groupedData.has(key)) {
+                    groupedData.set(key, {
+                        artist: track.artist_name,
+                        year: track.year,
+                        songs: [],
+                        track_count: 0
+                    });
+                }
+
+                const data = groupedData.get(key);
+                data.songs.push({
+                    track_name: track.track_name,
+                    track_id: track.track_id,
+                    popularity: track.popularity
+                });
+                data.track_count++;
+            });
+
+            // Traiter chaque groupe
+            const heatmapCells = [];
+
+            groupedData.forEach((data) => {
+                // Trier les chansons par popularité
+                data.songs.sort((a, b) => b.popularity - a.popularity);
+                
+                // Garder le top 5
+                const top5Songs = data.songs.slice(0, 5);
+                
+                // Calculer la popularité moyenne
+                const avgPopularity = data.songs.reduce(
+                    (sum, song) => sum + song.popularity, 0
+                ) / data.songs.length;
+
+                // Calculer le rang
+                const maxPopularity = data.songs[0]?.popularity || 0;
+                let rank = 0;
+                if (maxPopularity >= 80) rank = 4;
+                else if (maxPopularity >= 60) rank = 3;
+                else if (maxPopularity >= 40) rank = 2;
+                else if (maxPopularity >= 20) rank = 1;
+
+                heatmapCells.push({
+                    artist: data.artist,
+                    year: data.year,
+                    rank: rank,
+                    popular_songs: top5Songs,
+                    avg_popularity: Math.round(avgPopularity),
+                    track_count: data.track_count
+                });
+            });
+
+            return heatmapCells;
+        }
+
+        // Fonction pour rendre la heatmap avec D3
+        function renderHeatmap(data, allTracks) {
+            // Limiter aux 30 artistes les plus populaires pour la lisibilité
+            const topArtists = getTopArtists(data, 30);
+            
+            const container = d3.select('#heatmap-container');
+            container.selectAll('*').remove();
+
+            const margin = { top: 60, right: 150, bottom: 80, left: 220 };
+            const width = 1400 - margin.left - margin.right;
+            const height = 800 - margin.top - margin.bottom;
+
+            const svg = container.append('svg')
+                .attr('width', width + margin.left + margin.right)
+                .attr('height', height + margin.top + margin.bottom)
+                .style('display', 'block');
+
+            const g = svg.append('g')
+                .attr('transform', `translate(${margin.left},${margin.top})`);
+
+            // Déterminer la plage d'années à afficher en fonction des filtres
+            let minYearToShow = currentYearMin !== null ? currentYearMin : globalMinYear;
+            let maxYearToShow = currentYearMax !== null ? currentYearMax : globalMaxYear;
+            
+            // Créer la liste des années filtrées
+            const allYears = [];
+            for (let year = minYearToShow; year <= maxYearToShow; year++) {
+                allYears.push(year);
+            }
+            
+            const artists = getUniqueArtists(topArtists);
+
+            // Créer un Map pour accès rapide aux données
+            const dataMap = new Map();
+            topArtists.forEach(d => {
+                dataMap.set(`${d.artist}-${d.year}`, d);
+            });
+
+            // Créer un dataset complet avec toutes les combinaisons artiste/année
+            const completeData = [];
+            artists.forEach(artist => {
+                allYears.forEach(year => {
+                    const key = `${artist}-${year}`;
+                    const existingData = dataMap.get(key);
+                    if (existingData) {
+                        completeData.push(existingData);
+                    } else {
+                        // Cellule vide - pas de données pour cet artiste cette année
+                        completeData.push({
+                            artist: artist,
+                            year: year,
+                            rank: -1, // -1 indique "pas de données"
+                            popular_songs: [],
+                            avg_popularity: 0,
+                            track_count: 0
+                        });
+                    }
+                });
+            });
+
+            // Échelles
+            const xScale = d3.scaleBand()
+                .domain(allYears.map(String))
+                .range([0, width])
+                .padding(0.05);
+
+            const yScale = d3.scaleBand()
+                .domain(artists)
+                .range([0, height])
+                .padding(0.05);
+
+            // NOUVELLES COULEURS selon vos spécifications
+            // Récupérer les couleurs depuis les variables CSS
+            const rootStyles = getComputedStyle(document.documentElement);
+            const colors = {
+                noData: rootStyles.getPropertyValue('--heatmap-no-data').trim(),
+                range0: rootStyles.getPropertyValue('--heatmap-0-20').trim(),
+                range1: rootStyles.getPropertyValue('--heatmap-20-40').trim(),
+                range2: rootStyles.getPropertyValue('--heatmap-40-60').trim(),
+                range3: rootStyles.getPropertyValue('--heatmap-60-80').trim(),
+                range4: rootStyles.getPropertyValue('--heatmap-80-100').trim()
+            };
+
+            console.log('🎨 Couleurs chargées depuis CSS:', colors);
+
+            // scaleThreshold avec domaine [1, 20, 40, 60, 80] pour 6 couleurs
+            // valeurs < 1 → noData, 1-20 → range0, 20-40 → range1, etc.
+            const colorScale = d3.scaleThreshold()
+                .domain([1, 20, 40, 60, 80])
+                .range([
+                    colors.noData,   // < 1 (pas de données)
+                    colors.range0,   // 1-20
+                    colors.range1,   // 20-40
+                    colors.range2,   // 40-60
+                    colors.range3,   // 60-80
+                    colors.range4    // 80-100
+                ]);
+            
+            // Fonction pour obtenir la couleur en fonction du rang ou de l'avg_popularity
+            function getColor(d) {
+                if (d.rank === -1 || d.track_count === 0) {
+                    return colors.noData; // Pas de données
+                }
+
+                // Utiliser avg_popularity pour plus de précision
+                return colorScale(d.avg_popularity);
+            }
+
+            // Créer tooltip
+            const tooltip = createTooltip();
+
+            // Dessiner les cellules
+            g.selectAll('.heatmap-cell')
+                .data(completeData)
+                .enter()
+                .append('rect')
+                .attr('class', 'heatmap-cell')
+                .attr('x', d => xScale(String(d.year)))
+                .attr('y', d => yScale(d.artist))
+                .attr('width', xScale.bandwidth())
+                .attr('height', yScale.bandwidth())
+                .attr('fill', d => getColor(d))
+                .attr('stroke', '#1a1a1a')
+                .attr('stroke-width', 1)
+                .attr('rx', 2)
+                .style('cursor', d => d.rank === -1 ? 'default' : 'pointer')
+                .on('mouseover', function(event, d) {
+                    if (d.rank !== -1) {
+                        d3.select(this).attr('stroke', '#fff').attr('stroke-width', 3);
+                        showTooltip(event, d, tooltip);
+                    }
+                })
+                .on('mouseout', function(event, d) {
+                    d3.select(this).attr('stroke', '#1a1a1a').attr('stroke-width', 1);
+                    tooltip.style('visibility', 'hidden');
+                })
+                .on('click', (event, d) => {
+                    if (d.rank !== -1) {
+                        showDetailModal(d);
+                    }
+                });
+
+            // Axes
+            g.append('g')
+                .attr('class', 'x-axis')
+                .attr('transform', `translate(0,${height})`)
+                .call(d3.axisBottom(xScale))
+                .selectAll('text')
+                .style('text-anchor', 'end')
+                .attr('dx', '-0.8em')
+                .attr('dy', '0.15em')
+                .attr('transform', 'rotate(-45)')
+                .style('fill', '#e2e2e2')
+                .style('font-size', '11px');
+
+            g.append('g')
+                .attr('class', 'y-axis')
+                .call(d3.axisLeft(yScale))
+                .selectAll('text')
+                .style('fill', '#e2e2e2')
+                .style('font-size', '11px');
+
+            // Styling des axes
+            g.selectAll('.x-axis .domain, .y-axis .domain, .x-axis .tick line, .y-axis .tick line')
+                .style('stroke', '#535353');
+
+            // Titre
+            g.append('text')
+                .attr('x', width / 2)
+                .attr('y', -30)
+                .attr('text-anchor', 'middle')
+                .style('fill', '#e2e2e2')
+                .style('font-size', '18px')
+                .style('font-weight', 'bold')
+                .text('Popularité des artistes par année');
+
+            // Labels
+            g.append('text')
+                .attr('x', width / 2)
+                .attr('y', height + 60)
+                .attr('text-anchor', 'middle')
+                .style('fill', '#e2e2e2')
+                .style('font-size', '13px')
+                .text('Année');
+
+            g.append('text')
+                .attr('transform', 'rotate(-90)')
+                .attr('x', -height / 2)
+                .attr('y', -160)
+                .attr('text-anchor', 'middle')
+                .style('fill', '#e2e2e2')
+                .style('font-size', '13px')
+                .text('Artiste');
+
+            // Légende (HTML fixe au lieu de SVG)
+            drawLegendHTML();
+        }
+
+        function getTopArtists(cells, topN) {
+            const artistStats = new Map();
+
+            cells.forEach(cell => {
+                if (!artistStats.has(cell.artist)) {
+                    artistStats.set(cell.artist, { totalPopularity: 0 });
+                }
+                const stats = artistStats.get(cell.artist);
+                // Cumuler toutes les popularités
+                stats.totalPopularity += cell.avg_popularity;
+            });
+
+            const sortedArtists = Array.from(artistStats.entries())
+                .map(([artist, stats]) => ({
+                    artist,
+                    totalPopularity: stats.totalPopularity
+                }))
+                .sort((a, b) => b.totalPopularity - a.totalPopularity)
+                .slice(0, topN)
+                .map(item => item.artist);
+
+            return cells.filter(cell => sortedArtists.includes(cell.artist));
+        }
+
+        function getUniqueArtists(cells) {
+            const artistStats = new Map();
+
+            cells.forEach(cell => {
+                if (!artistStats.has(cell.artist)) {
+                    artistStats.set(cell.artist, { total: 0, count: 0 });
+                }
+                const stats = artistStats.get(cell.artist);
+                stats.total += cell.avg_popularity;
+                stats.count++;
+            });
+
+            return Array.from(artistStats.entries())
+                .map(([artist, stats]) => ({
+                    artist,
+                    avgPopularity: stats.total / stats.count
+                }))
+                .sort((a, b) => b.avgPopularity - a.avgPopularity)
+                .map(item => item.artist);
+        }
+
+        function drawLegend(g, colorScale, width) {
+            const legend = g.append('g')
+                .attr('class', 'legend')
+                .attr('transform', `translate(${width + 20}, 0)`);
+
+            legend.append('text')
+                .attr('y', 0)
+                .style('fill', '#e2e2e2')
+                .style('font-size', '12px')
+                .style('font-weight', 'bold')
+                .text('Popularité');
+
+            // Récupérer les couleurs depuis CSS
+            const rootStyles = getComputedStyle(document.documentElement);
+            const legendData = [
+                { color: rootStyles.getPropertyValue('--heatmap-80-100').trim(), label: '80 - 100' },
+                { color: rootStyles.getPropertyValue('--heatmap-60-80').trim(), label: '60 - 80' },
+                { color: rootStyles.getPropertyValue('--heatmap-40-60').trim(), label: '40 - 60' },
+                { color: rootStyles.getPropertyValue('--heatmap-20-40').trim(), label: '20 - 40' },
+                { color: rootStyles.getPropertyValue('--heatmap-0-20').trim(), label: '0 - 20' },
+                { color: rootStyles.getPropertyValue('--heatmap-no-data').trim(), label: 'Pas de données' }
+            ];
+
+            legendData.forEach((item, i) => {
+                const legendItem = legend.append('g')
+                    .attr('transform', `translate(0, ${i * 35 + 20})`);
+
+                legendItem.append('rect')
+                    .attr('width', 25)
+                    .attr('height', 25)
+                    .attr('fill', item.color)
+                    .attr('stroke', '#1a1a1a')
+                    .attr('rx', 2);
+
+                legendItem.append('text')
+                    .attr('x', 32)
+                    .attr('y', 17)
+                    .style('fill', '#e2e2e2')
+                    .style('font-size', '10px')
+                    .text(item.label);
+            });
+        }
+
+        function drawLegendHTML() {
+            // Supprimer l'ancienne légende si elle existe
+            d3.select('#heatmap-legend').remove();
+            d3.select('#legend-toggle-btn').remove();
+
+            // Récupérer les couleurs depuis CSS
+            const rootStyles = getComputedStyle(document.documentElement);
+            const legendData = [
+                { color: rootStyles.getPropertyValue('--heatmap-80-100').trim(), label: '80 - 100' },
+                { color: rootStyles.getPropertyValue('--heatmap-60-80').trim(), label: '60 - 80' },
+                { color: rootStyles.getPropertyValue('--heatmap-40-60').trim(), label: '40 - 60' },
+                { color: rootStyles.getPropertyValue('--heatmap-20-40').trim(), label: '20 - 40' },
+                { color: rootStyles.getPropertyValue('--heatmap-0-20').trim(), label: '0 - 20' },
+                { color: rootStyles.getPropertyValue('--heatmap-no-data').trim(), label: 'Pas de données' }
+            ];
+
+            // Créer le bouton toggle
+            const toggleBtn = d3.select('body')
+                .append('button')
+                .attr('id', 'legend-toggle-btn')
+                .style('position', 'fixed')
+                .style('bottom', '30px')
+                .style('right', '30px')
+                .style('background-color', 'var(--violet)')
+                .style('color', 'white')
+                .style('border', 'none')
+                .style('border-radius', '8px')
+                .style('padding', '10px 16px')
+                .style('cursor', 'pointer')
+                .style('font-size', '13px')
+                .style('font-weight', '600')
+                .style('box-shadow', '0 4px 12px rgba(0,0,0,0.3)')
+                .style('z-index', '501')
+                .style('transition', 'all 0.2s ease')
+                .html('<i class="fa-solid fa-close"></i>');
+
+            // Effet hover sur le bouton
+            toggleBtn.on('mouseenter', function() {
+                d3.select(this)
+                    .style('transform', 'translateY(-2px)')
+                    .style('box-shadow', '0 6px 16px rgba(0,0,0,0.4)');
+            }).on('mouseleave', function() {
+                d3.select(this)
+                    .style('transform', 'translateY(0)')
+                    .style('box-shadow', '0 4px 12px rgba(0,0,0,0.3)');
+            });
+
+            // Créer la légende HTML fixe (initialement visible)
+            const legend = d3.select('body')
+                .append('div')
+                .attr('id', 'heatmap-legend')
+                .style('position', 'fixed')
+                .style('bottom', '80px')
+                .style('right', '30px')
+                .style('background-color', 'var(--bg-light)')
+                .style('padding', '15px')
+                .style('border-radius', '10px')
+                .style('box-shadow', '0 4px 12px rgba(0,0,0,0.3)')
+                .style('z-index', '500')
+                .style('border', '1px solid rgba(255,255,255,0.1)')
+                .style('transition', 'opacity 0.3s ease, transform 0.3s ease')
+                .style('opacity', '1')
+                .style('transform', 'translateX(0)');
+
+            legend.append('div')
+                .style('font-size', '13px')
+                .style('font-weight', 'bold')
+                .style('color', '#e2e2e2')
+                .style('margin-bottom', '12px')
+                .text('Popularité');
+
+            legendData.forEach(item => {
+                const legendItem = legend.append('div')
+                    .style('display', 'flex')
+                    .style('align-items', 'center')
+                    .style('margin-bottom', '8px')
+                    .style('gap', '8px');
+
+                legendItem.append('div')
+                    .style('width', '25px')
+                    .style('height', '25px')
+                    .style('background-color', item.color)
+                    .style('border', '1px solid #1a1a1a')
+                    .style('border-radius', '3px')
+                    .style('flex-shrink', '0');
+
+                legendItem.append('span')
+                    .style('color', '#e2e2e2')
+                    .style('font-size', '11px')
+                    .text(item.label);
+            });
+
+            // État de la légende (visible par défaut)
+            let isLegendVisible = true;
+
+            // Gérer le clic sur le bouton toggle
+            toggleBtn.on('click', function() {
+                isLegendVisible = !isLegendVisible;
+                
+                if (isLegendVisible) {
+                    // Afficher la légende
+                    legend
+                        .style('opacity', '1')
+                        .style('transform', 'translateX(0)')
+                        .style('pointer-events', 'auto');
+                    toggleBtn.html('<i class="fa-solid fa-close"></i>');
+                } else {
+                    // Masquer la légende
+                    legend
+                        .style('opacity', '0')
+                        .style('transform', 'translateX(20px)')
+                        .style('pointer-events', 'none');
+                    toggleBtn.html('Légende');
+                }
+            });
+        }
+
+        function createTooltip() {
+            d3.select('#heatmap-tooltip').remove();
+            return d3.select('body')
+                .append('div')
+                .attr('id', 'heatmap-tooltip')
+                .style('position', 'absolute')
+                .style('visibility', 'hidden')
+                .style('background-color', 'rgba(0, 0, 0, 0.9)')
+                .style('color', '#fff')
+                .style('padding', '12px')
+                .style('border-radius', '8px')
+                .style('font-size', '13px')
+                .style('pointer-events', 'none')
+                .style('z-index', '1000')
+                .style('max-width', '300px');
+        }
+
+        function showTooltip(event, d, tooltip) {
+            const topSongs = d.popular_songs
+                .slice(0, 5)
+                .map((song, i) => `${i + 1}. ${song.track_name} (${song.popularity})`)
+                .join('<br/>');
+
+            const content = `
+                <div style="font-weight: bold; margin-bottom: 6px; border-bottom: 1px solid #555; padding-bottom: 6px;">
+                    ${d.artist} - ${d.year}
+                </div>
+                <div style="margin-bottom: 4px;"><strong>Rang:</strong> ${d.rank} / 4</div>
+                <div style="margin-bottom: 4px;"><strong>Popularité moy.:</strong> ${d.avg_popularity}</div>
+                <div style="margin-bottom: 4px;"><strong>Nb chansons:</strong> ${d.track_count}</div>
+                <div style="margin-top: 8px; padding-top: 6px; border-top: 1px solid #555;">
+                    <strong>Top chansons:</strong><br/>
+                    <div style="margin-top: 4px; font-size: 11px;">${topSongs}</div>
+                </div>
+            `;
+
+            tooltip.html(content)
+                .style('visibility', 'visible')
+                .style('left', `${event.pageX + 10}px`)
+                .style('top', `${event.pageY - 10}px`);
+        }
+
+        function showDetailModal(data) {
+            d3.select('#detail-modal').remove();
+            d3.select('#modal-backdrop').remove();
+
+            const backdrop = d3.select('body')
+                .append('div')
+                .attr('id', 'modal-backdrop')
+                .style('position', 'fixed')
+                .style('top', '0')
+                .style('left', '0')
+                .style('width', '100%')
+                .style('height', '100%')
+                .style('background-color', 'rgba(0, 0, 0, 0.7)')
+                .style('z-index', '1999')
+                .on('click', closeModal);
+
+            const modal = d3.select('body')
+                .append('div')
+                .attr('id', 'detail-modal')
+                .style('position', 'fixed')
+                .style('top', '50%')
+                .style('left', '50%')
+                .style('transform', 'translate(-50%, -50%)')
+                .style('background-color', 'var(--bg-light, #353a50)')
+                .style('padding', '30px')
+                .style('border-radius', '15px')
+                .style('box-shadow', '0 10px 40px rgba(0,0,0,0.5)')
+                .style('z-index', '2000')
+                .style('max-width', '500px')
+                .style('max-height', '80vh')
+                .style('overflow-y', 'auto')
+                .style('color', 'var(--text, #e2e2e2)');
+
+            modal.append('h2')
+                .style('margin-top', '0')
+                .style('color', 'var(--accent-1, #6eb6ff)')
+                .text(`${data.artist} - ${data.year}`);
+
+            modal.append('div')
+                .style('margin-bottom', '20px')
+                .html(`
+                    <p><strong>Rang:</strong> ${data.rank} / 4</p>
+                    <p><strong>Popularité moyenne:</strong> ${data.avg_popularity}</p>
+                    <p><strong>Nombre de chansons:</strong> ${data.track_count}</p>
+                `);
+
+            modal.append('h3')
+                .style('color', 'var(--accent-2, #ff6ad5)')
+                .text('Top chansons:');
+
+            const list = modal.append('ol').style('padding-left', '20px');
+            data.popular_songs.forEach(song => {
+                list.append('li')
+                    .style('margin-bottom', '8px')
+                    .html(`
+                        <strong>${song.track_name}</strong><br/>
+                        <span style="color: var(--accent-4, #5be7a9); font-size: 12px;">
+                            Popularité: ${song.popularity}
+                        </span>
+                    `);
+            });
+
+            modal.append('button')
+                .style('margin-top', '20px')
+                .style('padding', '10px 20px')
+                .style('background-color', 'var(--violet, #7972a8)')
+                .style('color', '#fff')
+                .style('border', 'none')
+                .style('border-radius', '8px')
+                .style('cursor', 'pointer')
+                .text('Fermer')
+                .on('click', closeModal);
+        }
+
+        function closeModal() {
+            d3.select('#detail-modal').remove();
+            d3.select('#modal-backdrop').remove();
+        }
+
+        function setupGenreFilter(tracks) {
+            const genreSelect = d3.select('#genre-select');
+            
+            // Extraire tous les genres uniques et les trier
+            const uniqueGenres = [...new Set(tracks.map(track => track.genre))]
+                .filter(genre => genre && genre !== 'unknown')
+                .sort((a, b) => a.localeCompare(b));
+            
+            console.log(`🎵 ${uniqueGenres.length} genres trouvés:`, uniqueGenres);
+            
+            // Ajouter chaque genre au select
+            uniqueGenres.forEach(genre => {
+                genreSelect.append('option')
+                    .text(genre.charAt(0).toUpperCase() + genre.slice(1)) // Capitalize
+                    .attr('value', genre);
+            });
+            
+            // Gérer le changement de filtre
+            genreSelect.on('change', function() {
+                currentGenreFilter = this.value;
+                console.log('Genre sélectionné:', currentGenreFilter);
+                
+                applyFilters();
+            });
+        }
+
+        function setupYearFilter(tracks) {
+            const yearMinSelect = d3.select('#year-min-select');
+            const yearMaxSelect = d3.select('#year-max-select');
+            
+            // Extraire toutes les années uniques et les trier
+            const uniqueYears = [...new Set(tracks.map(track => track.year))]
+                .filter(year => !isNaN(year))
+                .sort((a, b) => a - b);
+            
+            console.log(`📅 ${uniqueYears.length} années trouvées: ${uniqueYears[0]} - ${uniqueYears[uniqueYears.length - 1]}`);
+            
+            // Ajouter chaque année aux deux selects
+            uniqueYears.forEach(year => {
+                yearMinSelect.append('option')
+                    .text(year)
+                    .attr('value', year);
+                    
+                yearMaxSelect.append('option')
+                    .text(year)
+                    .attr('value', year);
+            });
+            
+            // Gérer le changement de filtre min
+            yearMinSelect.on('change', function() {
+                const selectedMin = this.value ? parseInt(this.value) : null;
+                
+                // Si on réinitialise Min (sélection de "Min")
+                if (selectedMin === null) {
+                    currentYearMin = null;
+                    console.log('Année min réinitialisée');
+                    // Réactiver toutes les options de Max
+                    updateYearMaxOptions(uniqueYears, null);
+                    applyFilters();
+                    return;
+                }
+                
+                // Si min > max, réinitialiser max automatiquement
+                if (currentYearMax !== null && selectedMin > currentYearMax) {
+                    console.log(`⚠️ Min (${selectedMin}) > Max (${currentYearMax}), réinitialisation de Max`);
+                    yearMaxSelect.property('value', '');
+                    currentYearMax = null;
+                }
+                
+                currentYearMin = selectedMin;
+                console.log('Année min sélectionnée:', currentYearMin);
+                
+                // Mettre à jour les options du select max
+                updateYearMaxOptions(uniqueYears, currentYearMin);
+                
+                applyFilters();
+            });
+            
+            // Gérer le changement de filtre max
+            yearMaxSelect.on('change', function() {
+                const selectedMax = this.value ? parseInt(this.value) : null;
+                
+                // Si on réinitialise Max (sélection de "Max")
+                if (selectedMax === null) {
+                    currentYearMax = null;
+                    console.log('Année max réinitialisée');
+                    // Réactiver toutes les options de Min
+                    updateYearMinOptions(uniqueYears, null);
+                    applyFilters();
+                    return;
+                }
+                
+                // Si max < min, réinitialiser min automatiquement
+                if (currentYearMin !== null && selectedMax < currentYearMin) {
+                    console.log(`⚠️ Max (${selectedMax}) < Min (${currentYearMin}), réinitialisation de Min`);
+                    yearMinSelect.property('value', '');
+                    currentYearMin = null;
+                }
+                
+                currentYearMax = selectedMax;
+                console.log('Année max sélectionnée:', currentYearMax);
+                
+                // Mettre à jour les options du select min
+                updateYearMinOptions(uniqueYears, currentYearMax);
+                
+                applyFilters();
+            });
+            
+            // Fonction pour mettre à jour les options du select min
+            function updateYearMinOptions(years, maxYear) {
+                // Sauvegarder la valeur actuelle
+                const currentValue = yearMinSelect.property('value');
+                
+                yearMinSelect.selectAll('option:not([value=""])').remove();
+                
+                years.forEach(year => {
+                    const option = yearMinSelect.append('option')
+                        .text(year)
+                        .attr('value', year);
+                    
+                    // Désactiver les années > max
+                    if (maxYear !== null && year > maxYear) {
+                        option.attr('disabled', 'disabled')
+                            .style('color', '#999');
+                    }
+                });
+                
+                // Restaurer la valeur si elle est toujours valide
+                if (currentValue && (maxYear === null || parseInt(currentValue) <= maxYear)) {
+                    yearMinSelect.property('value', currentValue);
+                }
+            }
+            
+            // Fonction pour mettre à jour les options du select max
+            function updateYearMaxOptions(years, minYear) {
+                // Sauvegarder la valeur actuelle
+                const currentValue = yearMaxSelect.property('value');
+                
+                yearMaxSelect.selectAll('option:not([value=""])').remove();
+                
+                years.forEach(year => {
+                    const option = yearMaxSelect.append('option')
+                        .text(year)
+                        .attr('value', year);
+                    
+                    // Désactiver les années < min
+                    if (minYear !== null && year < minYear) {
+                        option.attr('disabled', 'disabled')
+                            .style('color', '#999');
+                    }
+                });
+                
+                // Restaurer la valeur si elle est toujours valide
+                if (currentValue && (minYear === null || parseInt(currentValue) >= minYear)) {
+                    yearMaxSelect.property('value', currentValue);
+                }
+            }
+        }
+
+        function applyFilters() {
+            const yearRangeText = currentYearMin || currentYearMax 
+                ? `${currentYearMin || '∞'} - ${currentYearMax || '∞'}` 
+                : 'Toutes';
+            console.log(`🔍 Application des filtres: Genre="${currentGenreFilter}", Plage années="${yearRangeText}"`);
+            
+            const heatmapData = processHeatmapData(allTracks, currentGenreFilter, currentYearMin, currentYearMax);
+            renderHeatmap(heatmapData, allTracks);
+        }
+
+        function showError(message) {
+            const container = d3.select('#heatmap-container');
+            container.selectAll('*').remove();
+            container.append('div')
+                .style('color', 'red')
+                .style('padding', '20px')
+                .style('text-align', 'center')
+                .text(`❌ ${message}`);
+        }
+
+        // Initialiser au chargement de la page
+        initHeatmap();
+    </script>
+</body>
+
+</html>

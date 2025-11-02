@@ -689,8 +689,8 @@ export class TimelineChart {
 
         circles.attr('r', 0)
             .transition()
-            .duration(500)
-            .delay((d, i) => i * 3)
+            .duration(0)
+            .delay(0)
             .attr('r', d => this.sizeScale(d.popularity));
 
         console.log(`Timeline: ${visibleTracks.length} tracks displayed in ${tracksByBPM.size} BPM groups`);

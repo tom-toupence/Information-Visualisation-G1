@@ -1,5 +1,18 @@
 /**
- * DataLoader - Gestion centralisée du chargement des données Spotify
+ * DataLoader - G        // IndexedDB
+        this.dbName = 'SpotimixDB';
+        this.dbVersion = 1;
+        this.storeName = 'spotify_tracks';
+        this.db = null;
+        this.dbReady = null;
+        
+        // Initialiser IndexedDB (sans préchargement automatique)
+        // Le chargement se fait à la demande quand une page appelle loadSpotifyData()
+        this.dbReady = this.initIndexedDB().then(() => {
+            console.log('📦 DataLoader initialisé (IndexedDB prête, chargement à la demande)');
+        }).catch(error => {
+            console.warn('⚠️ Erreur initialisation IndexedDB:', error.message);
+        });ée du chargement des données Spotify
  * Pattern Singleton avec cache mémoire uniquement (dataset trop gros pour Storage)
  * Les préférences utilisateur sont stockées dans LocalStorage
  */
@@ -19,6 +32,7 @@ class DataLoader {
         this.isLoading = false;
         // Promise de chargement en cours
         this.loadingPromise = null;
+        
         // IndexedDB
         this.dbName = 'SpotimixDB';
         this.dbVersion = 1;
@@ -26,8 +40,15 @@ class DataLoader {
         this.db = null;
         this.dbReady = null;
         
-        // Initialiser IndexedDB de manière lazy
-        this.dbReady = this.initIndexedDB();
+        // Initialiser IndexedDB avec préchargement automatique
+        this.dbReady = this.initIndexedDB().then(() => {
+            // Préchargement automatique après initialisation IndexedDB
+            return this.loadSpotifyData();
+        }).then(() => {
+            console.log('📦 DataLoader initialisé avec préchargement des données');
+        }).catch(error => {
+            console.warn('⚠️ Préchargement échoué, chargement à la demande:', error.message);
+        });
     }
 
     /**
@@ -145,8 +166,17 @@ class DataLoader {
         
         this.loadingPromise = (async () => {
             try {
-                // Attendre que IndexedDB soit prête
-                await this.dbReady;
+                // Attendre que IndexedDB soit initialisée
+                let dbInitialized = false;
+                let attempts = 0;
+                while (!dbInitialized && attempts < 100) {
+                    if (this.db !== null && this.db !== undefined) {
+                        dbInitialized = true;
+                    } else {
+                        await new Promise(resolve => setTimeout(resolve, 50));
+                        attempts++;
+                    }
+                }
                 
                 // Vérifier IndexedDB
                 const cachedData = await this.getFromIndexedDB(cacheKey);

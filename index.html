@@ -53,6 +53,8 @@
     <a class="panel panel--a" href="heatmap.html" aria-label="Ouvrir Heatmap">
       <div class="panel__title">Heatmap - Popularité des artistes</div>
       <div class="panel__body" id="preview-heatmap">
+        <!-- Loader pendant le chargement -->
+    
         <!-- Mini preview généré par JS -->
       </div>
     </a>
@@ -79,30 +81,36 @@
     </a>
   </main>
 
-  <!-- DataLoader pour préférences persistantes -->
-  <script type="module" src="js/DataLoader.js"></script>
+  <!-- Dashboard sans DataLoader pour éviter le préchargement du CSV -->
   <script src="js/dashboard.js"></script>
   
   <script>
-    // Gestion du sélecteur de genre dans le dashboard
+    // Gestion du sélecteur de genre dans le dashboard (utilise LocalStorage directement)
     document.addEventListener('DOMContentLoaded', () => {
       const genreSelect = document.getElementById('genre-select');
+      const PREFS_KEY = 'spotimix_user_prefs';
       
-      // Charger la préférence de genre sauvegardée
-      if (window.dataLoader) {
-        const prefs = window.dataLoader.getUserPreferences();
+      // Charger la préférence de genre sauvegardée depuis LocalStorage
+      try {
+        const prefs = JSON.parse(localStorage.getItem(PREFS_KEY) || '{}');
         if (prefs.genre) {
           genreSelect.value = prefs.genre;
           console.log('Dashboard: Genre chargé depuis préférences:', prefs.genre);
         }
+      } catch (error) {
+        console.warn('Erreur chargement préférences:', error);
       }
       
       // Sauvegarder le genre quand il change
       genreSelect.addEventListener('change', (e) => {
         const selectedGenre = e.target.value;
-        if (window.dataLoader) {
-          window.dataLoader.saveUserPreferences({ genre: selectedGenre });
+        try {
+          const prefs = JSON.parse(localStorage.getItem(PREFS_KEY) || '{}');
+          prefs.genre = selectedGenre;
+          localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
           console.log('Dashboard: Genre sauvegardé:', selectedGenre || 'Tous les genres');
+        } catch (error) {
+          console.warn('Erreur sauvegarde préférences:', error);
         }
       });
     });

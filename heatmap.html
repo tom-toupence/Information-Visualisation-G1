@@ -91,6 +91,9 @@
                 
                 console.log(`📊 ${allTracks.length} pistes chargées`);
 
+                const loader = document.querySelector('#heatmap-container .loading-placeholder');
+                if (loader) loader.remove();
+
                 // Créer l'instance de HeatmapChart
                 heatmapChart = new HeatmapChart('heatmap-container');
 

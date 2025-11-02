@@ -13,11 +13,6 @@ async function loadPreviewData() {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
-    // Attendre que window.dataLoader soit disponible
-    while (!window.dataLoader) {
-        await new Promise(resolve => setTimeout(resolve, 50));
-    }
-
     console.log('Dashboard SPOTIMIX chargé');
 
     // Charger les données de preview en parallèle
@@ -28,39 +23,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (genreSelect) {
         console.log('Chargement des genres disponibles...');
         try {
-            const genres = await window.dataLoader.getAvailableGenres();
-            console.log(`${genres.length} genres chargés depuis music_genres_tree.json`);
+            // Charger directement le fichier JSON sans DataLoader
+            const response = await fetch('assets/music_genres_tree.json');
+            const genreTree = await response.json();
+            
+            // Extraire tous les genres de l'arbre
+            const genres = [];
+            function extractGenres(node) {
+                if (node.name) genres.push(node.name);
+                if (node.children) {
+                    node.children.forEach(child => extractGenres(child));
+                }
+            }
+            extractGenres(genreTree);
+            
+            // Trier et dédupliquer
+            const uniqueGenres = [...new Set(genres)].sort();
+            console.log(`${uniqueGenres.length} genres chargés depuis music_genres_tree.json`);
             
             // Vider le sélecteur et ajouter l'option "Tous"
             genreSelect.innerHTML = '<option value="">Tous les genres</option>';
             
             // Ajouter tous les genres triés
-            genres.forEach(genre => {
+            uniqueGenres.forEach(genre => {
                 const option = document.createElement('option');
                 option.value = genre;
                 option.textContent = genre.charAt(0).toUpperCase() + genre.slice(1);
                 genreSelect.appendChild(option);
             });
-
-            // Restaurer la préférence sauvegardée
-            const prefs = window.dataLoader.getUserPreferences();
-            if (prefs.genre) {
-                genreSelect.value = prefs.genre;
-            }
         } catch (error) {
             console.error('Erreur chargement genres:', error);
         }
-
-        // Gérer le changement de genre
-        genreSelect.addEventListener('change', (e) => {
-            const selectedGenre = e.target.value;
-            console.log('Genre sélectionné:', selectedGenre);
-            
-            // Sauvegarder la préférence
-            if (window.dataLoader) {
-                window.dataLoader.saveUserPreferences({ genre: selectedGenre });
-            }
-        });
     }
 
     // Créer les mini previews dans les panels

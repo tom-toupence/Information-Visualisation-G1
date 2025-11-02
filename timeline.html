@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotimix - Timeline Tempo</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/timeline-styles.css">
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <a class="side-icon" href="index.html" title="Dashboard">
+            <i class="fa-solid fa-house"></i>
+        </a>
+        <a class="side-icon" href="heatmap.html" title="Heatmap">
+            <i class="fa-solid fa-border-all"></i>
+        </a>
+        <a class="side-icon home" href="timeline.html" title="Timeline BPM">
+            <i class="fa-solid fa-chart-line"></i>
+        </a>
+        <a class="side-icon" href="genrasExplore.html" title="Exploration par genres">
+            <i class="fa-solid fa-circle-nodes"></i>
+        </a>
+        <a class="side-icon" href="scatter.html" title="Scatter Plot">
+            <i class="fa-solid fa-braille"></i>
+        </a>
+    </aside>
+
+    <script type="module">
+        // Import modules
+        import { DataLoader } from './js/DataLoader.js';
+        import { TimelineChart } from './js/timeline/TimelineChart.js';
+        import { TimelineDashboard } from './js/timeline/TimelineDashboard.js';
+
+        // DataUtils inline (simple utility class)
+        class DataUtils {
+            static getUniqueGenres(tracks) {
+                return [...new Set(tracks.map(t => t.genre || t.track_genre))].sort();
+            }
+
+            static filterTracks(tracks, filters) {
+                return tracks.filter(track => {
+                    if (filters.genres && filters.genres.length > 0) {
+                        if (!filters.genres.includes(track.genre || track.track_genre)) return false;
+                    }
+                    if (filters.popularityRange) {
+                        const [min, max] = filters.popularityRange;
+                        if (track.popularity < min || track.popularity > max) return false;
+                    }
+                    return true;
+                });
+            }
+        }
+
+        // Make classes available globally
+        window.DataLoader = DataLoader;
+        window.DataUtils = DataUtils;
+        
+        document.addEventListener('DOMContentLoaded', async () => {
+            console.log('🎵 Starting Timeline Dashboard...');
+            const dashboard = new TimelineDashboard();
+            await dashboard.init();
+            window.timelineDashboard = dashboard;
+        });
+    </script>
+</body>
+</html>

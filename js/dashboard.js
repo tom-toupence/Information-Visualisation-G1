@@ -65,6 +65,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Créer les mini previews dans les panels
     createHeatmapPreview();
+    createTimelinePreview();
     createGenresPreview();
     createScatterPreview();
 });
@@ -267,6 +268,405 @@ function createHeatmapPreview() {
         .duration(800)
         .delay((d, i) => i * 10)
         .attr('opacity', 0.8);
+}
+
+/**
+ * Crée un mini preview de la timeline des BPM dans le dashboard
+ */
+function createTimelinePreview() {
+    const previewContainer = document.getElementById('preview-timeline');
+    if (!previewContainer) return;
+
+    // Dimensions du preview
+    const width = previewContainer.clientWidth || 400;
+    const height = previewContainer.clientHeight || 250;
+    const margin = { top: 20, right: 20, bottom: 30, left: 20 };
+    const innerWidth = width - margin.left - margin.right;
+    const innerHeight = height - margin.top - margin.bottom;
+
+    // Créer le SVG
+    const svg = d3.select(previewContainer)
+        .append('svg')
+        .attr('width', width)
+        .attr('height', height);
+
+    const g = svg.append('g')
+        .attr('transform', `translate(${margin.left},${margin.top})`);
+
+    // Utiliser les vraies données ou simuler des tracks avec BPM
+    let tracksData;
+    if (previewData?.tracks) {
+        // Utiliser les vraies données et générer des tempos cohérents
+        tracksData = previewData.tracks.map(track => ({
+            ...track,
+            // Générer un tempo basé sur le genre et l'énergie
+            tempo: generateTempoFromTrack(track)
+        }));
+    } else {
+        // Fallback : générer des données simulées
+        tracksData = Array.from({ length: 50 }, () => ({
+            tempo: 60 + Math.random() * 140, // BPM entre 60 et 200
+            popularity: Math.random() * 100,
+            genre: ['pop', 'rock', 'electronic', 'hip-hop', 'jazz'][Math.floor(Math.random() * 5)]
+        }));
+    }
+
+    // Fonction pour générer un tempo cohérent basé sur le genre et l'énergie
+    function generateTempoFromTrack(track) {
+        const genreTempoRanges = {
+            'pop': { min: 100, max: 140 },
+            'rock': { min: 110, max: 160 },
+            'hip-hop': { min: 80, max: 120 },
+            'electronic': { min: 120, max: 150 },
+            'jazz': { min: 80, max: 140 },
+            'reggaeton': { min: 90, max: 110 }
+        };
+        
+        const range = genreTempoRanges[track.genre] || { min: 90, max: 140 };
+        const energy = track.energy || 0.5;
+        
+        // Le tempo est influencé par l'énergie dans la plage du genre
+        const tempoRange = range.max - range.min;
+        const baseTempo = range.min + (energy * tempoRange);
+        
+        // Utiliser une variation basée sur la popularité (déterministe)
+        const popularityVariation = ((track.popularity || 50) % 20) - 10;
+        return Math.round(baseTempo + popularityVariation);
+    }
+
+    // Configuration similaire à la timeline principale
+    const currentCenterTempo = 120;
+    const tempoRange = 30;
+    const centerBoxWidth = innerWidth * 0.6;
+    const centerBoxStart = (innerWidth - centerBoxWidth) / 2;
+    
+    // Échelles
+    const xScale = d3.scaleLinear()
+        .domain([currentCenterTempo - tempoRange, currentCenterTempo + tempoRange])
+        .range([centerBoxStart, centerBoxStart + centerBoxWidth]);
+
+    const yScale = d3.scaleLinear()
+        .domain([0, 1])
+        .range([innerHeight, 0]);
+
+    // Couleurs de genres cohérentes avec la timeline principale
+    const genreColors = {
+        'pop': '#6eb6ff',
+        'rock': '#ff7f0e', 
+        'hip-hop': '#2ca02c',
+        'electronic': '#d62728',
+        'jazz': '#8c564b',
+        'reggaeton': '#9467bd'
+    };
+    
+    const getGenreColor = (genre) => genreColors[genre] || '#999999';
+    
+    const sizeScale = d3.scaleSqrt().domain([0, 100]).range([3, 8]);
+
+    // === PARTIE CENTRALE ENCADRÉE ===
+    
+    // Clipping path pour limiter les points à la boîte centrale
+    const clipBoxX = centerBoxStart - 5;
+    const clipBoxY = innerHeight * 0.1;
+    const clipBoxHeight = innerHeight * 0.8;
+    
+    g.append('defs').append('clipPath')
+        .attr('id', 'preview-center-box-clip')
+        .append('rect')
+        .attr('x', clipBoxX)
+        .attr('y', clipBoxY)
+        .attr('width', centerBoxWidth + 10)
+        .attr('height', clipBoxHeight);
+    
+    // Encadrement gris de la partie centrale
+    g.append('rect')
+        .attr('class', 'center-box')
+        .attr('x', clipBoxX)
+        .attr('y', clipBoxY)
+        .attr('width', centerBoxWidth + 10)
+        .attr('height', clipBoxHeight)
+        .style('fill', 'none')
+        .style('stroke', '#666')
+        .style('stroke-width', 1);
+
+    // === AXE PRINCIPAL ===
+    
+    const axisHeight = innerHeight - 10;
+    
+    // Ligne principale de l'axe
+    g.append('line')
+        .attr('x1', 0)
+        .attr('x2', innerWidth)
+        .attr('y1', axisHeight)
+        .attr('y2', axisHeight)
+        .style('stroke', '#a7a7a7')
+        .style('stroke-width', 1);
+
+    // Lignes verticales pour les BPM dans la partie centrale
+    // Seulement quelques lignes de référence principales
+    const referenceTempos = [94, 103, 112, 120, 129, 137, 146];
+    
+    referenceTempos.forEach(tempo => {
+        g.append('line')
+            .attr('x1', xScale(tempo))
+            .attr('x2', xScale(tempo))
+            .attr('y1', 0)
+            .attr('y2', axisHeight)
+            .style('stroke', tempo === currentCenterTempo ? '#7972a8' : '#666')
+            .style('stroke-width', tempo === currentCenterTempo ? 2 : 1)
+            .style('opacity', tempo === currentCenterTempo ? 0.8 : 0.3);
+    });
+
+    // Ticks avec labels (tous les 10 BPM)
+    referenceTempos.filter(t => t % 10 === 0).forEach(tempo => {
+        g.append('text')
+            .attr('x', xScale(tempo))
+            .attr('y', axisHeight + 15)
+            .style('fill', '#b3b3b3')
+            .style('font-size', '10px')
+            .style('text-anchor', 'middle')
+            .text(tempo);
+    });
+
+    // === LIGNE HORIZONTALE CENTRALE ===
+    
+    // Ligne horizontale fine au centre du graphique
+    const centerY = innerHeight / 2;
+    g.append('line')
+        .attr('x1', 0)
+        .attr('x2', innerWidth)
+        .attr('y1', centerY)
+        .attr('y2', centerY)
+        .style('stroke', '#666')
+        .style('stroke-width', 1)
+        .style('opacity', 0.4);
+
+    // === AXES ÉTENDUS SUR LES CÔTÉS ===
+    
+    // Grouper les tracks par BPM entier pour toutes les données
+    const tracksByBPM = d3.group(tracksData, d => Math.round(d.tempo));
+    const maxTracks = Math.max(...Array.from(tracksByBPM.values()).map(tracks => tracks.length), 1);
+
+    // Échelles pour les côtés
+    const leftScale = d3.scaleLinear()
+        .domain([currentCenterTempo - 30, currentCenterTempo - 4])
+        .range([5, centerBoxStart - 10]);
+
+    const rightScale = d3.scaleLinear()
+        .domain([currentCenterTempo + 4, currentCenterTempo + 30])
+        .range([centerBoxStart + centerBoxWidth + 10, innerWidth - 5]);
+
+    // Ticks côté gauche
+    const leftTicks = [];
+    for (let bpm = currentCenterTempo - 30; bpm <= currentCenterTempo - 4; bpm += 2) {
+        leftTicks.push(bpm);
+    }
+    
+    // Ticks côté droit
+    const rightTicks = [];
+    for (let bpm = currentCenterTempo + 4; bpm <= currentCenterTempo + 30; bpm += 2) {
+        rightTicks.push(bpm);
+    }
+
+    // Barres côté gauche
+    leftTicks.forEach(bpm => {
+        const x = leftScale(bpm);
+        const tracksAtBPM = tracksByBPM.get(bpm) || [];
+        const trackCount = tracksAtBPM.length;
+        
+        // Ligne fine grise d'arrière-plan
+        g.append('line')
+            .attr('x1', x)
+            .attr('x2', x)
+            .attr('y1', 0)
+            .attr('y2', axisHeight)
+            .style('stroke', '#666')
+            .style('stroke-width', 0.5)
+            .style('opacity', 0.3);
+        
+        if (trackCount > 0) {
+            const lineHeight = (trackCount / maxTracks) * (innerHeight * 0.6);
+            const centerY = innerHeight / 2;
+            
+            // Trouver le genre dominant
+            const genreCounts = {};
+            tracksAtBPM.forEach(track => {
+                genreCounts[track.genre] = (genreCounts[track.genre] || 0) + 1;
+            });
+            const dominantGenre = Object.keys(genreCounts).reduce((a, b) => 
+                genreCounts[a] > genreCounts[b] ? a : b
+            );
+            
+            // Barre colorée proportionnelle
+            g.append('line')
+                .attr('x1', x)
+                .attr('x2', x)
+                .attr('y1', centerY - lineHeight / 2)
+                .attr('y2', centerY + lineHeight / 2)
+                .style('stroke', getGenreColor(dominantGenre))
+                .style('stroke-width', Math.max(2, Math.min(6, 2 + (trackCount / maxTracks) * 4)))
+                .style('opacity', 0.8)
+                .style('stroke-linecap', 'round');
+        }
+        
+        // Petits traits sur l'axe
+        g.append('line')
+            .attr('x1', x)
+            .attr('x2', x)
+            .attr('y1', axisHeight - 3)
+            .attr('y2', axisHeight + 3)
+            .style('stroke', '#666')
+            .style('stroke-width', 1);
+        
+        // Labels (1 fois sur 4)
+        if (bpm % 8 === 0) {
+            g.append('text')
+                .attr('x', x)
+                .attr('y', axisHeight + 15)
+                .style('fill', '#b3b3b3')
+                .style('font-size', '9px')
+                .style('text-anchor', 'middle')
+                .text(bpm);
+        }
+    });
+
+    // Barres côté droit
+    rightTicks.forEach(bpm => {
+        const x = rightScale(bpm);
+        const tracksAtBPM = tracksByBPM.get(bpm) || [];
+        const trackCount = tracksAtBPM.length;
+        
+        // Ligne fine grise d'arrière-plan
+        g.append('line')
+            .attr('x1', x)
+            .attr('x2', x)
+            .attr('y1', 0)
+            .attr('y2', axisHeight)
+            .style('stroke', '#666')
+            .style('stroke-width', 0.5)
+            .style('opacity', 0.3);
+        
+        if (trackCount > 0) {
+            const lineHeight = (trackCount / maxTracks) * (innerHeight * 0.6);
+            const centerY = innerHeight / 2;
+            
+            // Trouver le genre dominant
+            const genreCounts = {};
+            tracksAtBPM.forEach(track => {
+                genreCounts[track.genre] = (genreCounts[track.genre] || 0) + 1;
+            });
+            const dominantGenre = Object.keys(genreCounts).reduce((a, b) => 
+                genreCounts[a] > genreCounts[b] ? a : b
+            );
+            
+            // Barre colorée proportionnelle
+            g.append('line')
+                .attr('x1', x)
+                .attr('x2', x)
+                .attr('y1', centerY - lineHeight / 2)
+                .attr('y2', centerY + lineHeight / 2)
+                .style('stroke', getGenreColor(dominantGenre))
+                .style('stroke-width', Math.max(2, Math.min(6, 2 + (trackCount / maxTracks) * 4)))
+                .style('opacity', 0.6)
+                .style('stroke-linecap', 'round');
+        }
+        
+        // Petits traits sur l'axe
+        g.append('line')
+            .attr('x1', x)
+            .attr('x2', x)
+            .attr('y1', axisHeight - 3)
+            .attr('y2', axisHeight + 3)
+            .style('stroke', '#666')
+            .style('stroke-width', 1);
+        
+        // Labels (1 fois sur 4)
+        if (bpm % 8 === 0) {
+            g.append('text')
+                .attr('x', x)
+                .attr('y', axisHeight + 15)
+                .style('fill', '#b3b3b3')
+                .style('font-size', '9px')
+                .style('text-anchor', 'middle')
+                .text(bpm);
+        }
+    });
+
+    // === POINTS DANS LA ZONE CENTRALE ===
+    
+    // Filtrer les tracks visibles dans la zone centrale
+    const visibleTracks = tracksData.filter(d => 
+        d.tempo >= currentCenterTempo - tempoRange &&
+        d.tempo <= currentCenterTempo + tempoRange
+    );
+
+    // Créer 7 colonnes fixes dans la zone centrale
+    const numberOfColumns = 7;
+    const columnWidth = centerBoxWidth / numberOfColumns;
+    const columns = [];
+    
+    // Initialiser les 7 colonnes
+    for (let i = 0; i < numberOfColumns; i++) {
+        columns.push({
+            x: centerBoxStart + (i * columnWidth) + (columnWidth / 2), // Centre de la colonne
+            tracks: []
+        });
+    }
+    
+    // Distribuer les tracks dans les colonnes en fonction de leur BPM
+    // Grouper par BPM arrondi d'abord
+    const centralTracksByBPM = d3.group(visibleTracks, d => Math.round(d.tempo));
+    
+    // Pour chaque BPM, distribuer les tracks dans les 7 colonnes
+    centralTracksByBPM.forEach((tracks, bpm) => {
+        tracks.forEach((track, index) => {
+            // Distribuer de façon stable basée sur le BPM et l'index
+            const columnIndex = (Math.round(bpm) + index) % numberOfColumns;
+            columns[columnIndex].tracks.push(track);
+        });
+    });
+    
+    // Positionner les tracks dans chaque colonne
+    columns.forEach(column => {
+        column.tracks.forEach((track, index) => {
+            track.xPosition = column.x;
+            // Empiler verticalement dans la colonne avec un petit espacement
+            const spacing = Math.min(clipBoxHeight / Math.max(column.tracks.length, 1), 15);
+            const startY = clipBoxY + (clipBoxHeight - (column.tracks.length - 1) * spacing) / 2;
+            track.yPosition = startY + (index * spacing);
+        });
+    });
+
+    // Dessiner les points
+    const circles = g.selectAll('.preview-track-circle')
+        .data(visibleTracks)
+        .enter().append('circle')
+        .attr('class', 'preview-track-circle')
+        .attr('cx', d => d.xPosition) // Utiliser la position X calculée (colonnes)
+        .attr('cy', d => d.yPosition)
+        .attr('r', d => sizeScale(d.popularity))
+        .style('fill', d => getGenreColor(d.genre))
+        .style('opacity', 0.7)
+        .attr('clip-path', 'url(#preview-center-box-clip)');
+
+    // Animation d'entrée
+    circles
+        .attr('r', 0)
+        .transition()
+        .duration(800)
+        .delay((d, i) => i * 10)
+        .attr('r', d => sizeScale(d.popularity));
+
+    // === LABELS DES AXES ===
+    
+    // Label axe horizontal
+    g.append('text')
+        .attr('x', innerWidth / 2)
+        .attr('y', innerHeight + 25)
+        .style('text-anchor', 'middle')
+        .style('fill', '#b3b3b3')
+        .style('font-size', '11px')
+        .text('Tempo (bpm)');
 }
 
 /**

@@ -230,7 +230,7 @@ body {
    ============================================================================ */
 #scatter-container {
   background: var(--bg-light);
-  padding: 24px;
+  padding: 12px;
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-2);
   position: relative;
@@ -238,7 +238,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 600px;
+  min-height: 700px;
 }
 
 #scatter-viz {

@@ -3,7 +3,7 @@
 // ============================================================================
 
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀 Dashboard SPOTIMIX chargé');
+    console.log('Dashboard SPOTIMIX chargé');
 
     // Créer un mini scatter preview dans le panel--a
     createScatterPreview();
@@ -115,5 +115,5 @@ function createScatterPreview() {
         .delay((d, i) => i * 5)
         .attr('r', 3);
 
-    console.log('✅ Preview scatter créé');
+    console.log('Preview scatter créé');
 }

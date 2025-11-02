@@ -1,51 +1,60 @@
 // ============================================================================
-// DATA PROCESSOR - Chargement et traitement des données
+// DATA PROCESSOR - Traitement et filtrage des données
+// Utilise DataLoader pour le chargement, se concentre sur le traitement
 // ============================================================================
 
 class ScatterDataProcessor {
     constructor() {
-        this.cachedData = null;
+        // DataLoader sera accessible via window.dataLoader (chargé avant)
+        this.dataLoader = window.dataLoader;
     }
 
     /**
-     * Charge et traite les données CSV pour une année donnée
+     * Traite et filtre les données pour une année et un genre donnés
      * @param {number} filterYear - Année à filtrer (par défaut 2023)
      * @param {number} topN - Nombre de pistes à garder (par défaut 1000)
+     * @param {string} filterGenre - Genre à filtrer (optionnel)
      * @returns {Promise<Array>} Tableau de données traitées
      */
-    async processScatterData(filterYear = 2023, topN = 1000) {
+    async processScatterData(filterYear = 2023, topN = 1000, filterGenre = '') {
         try {
-            console.log(`📊 Chargement des données pour l'année ${filterYear}...`);
+            const genreText = filterGenre ? ` et genre "${filterGenre}"` : '';
+            console.log(`Traitement des données pour l'année ${filterYear}${genreText}...`);
             
-            // Charger le CSV
-            const data = await d3.csv('data/spotify_data.csv', d => ({
-                track_name: d.track_name,
-                artist_name: d['artist(s)_name'],
-                genre: d.track_genre,
-                year: +d.year,
-                popularity: +d.popularity,
-                danceability: +d.danceability,
-                energy: +d.energy,
-                valence: +d.valence,
-                tempo: +d.tempo
-            }));
+            // Charger les données via DataLoader
+            const allData = await this.dataLoader.loadSpotifyData();
 
             // Filtrer par année
-            let filtered = data.filter(track => track.year === filterYear);
+            let filtered = allData.filter(track => track.year === filterYear);
+
+            // Filtrer par genre si spécifié
+            if (filterGenre) {
+                const beforeFilter = filtered.length;
+                filtered = filtered.filter(track => 
+                    track.genre && track.genre.toLowerCase().includes(filterGenre.toLowerCase())
+                );
+                console.log(`Filtrage genre "${filterGenre}": ${beforeFilter} → ${filtered.length} pistes`);
+            }
 
             // Trier par popularité et garder les top N
             filtered = filtered
                 .sort((a, b) => b.popularity - a.popularity)
                 .slice(0, topN);
+            
+            // Log des premiers genres pour debug
+            if (filtered.length > 0) {
+                const genres = [...new Set(filtered.slice(0, 5).map(d => d.genre))];
+                console.log('Genres présents (échantillon):', genres.join(', '));
+            }
 
             // Nettoyer (supprimer valeurs invalides)
             const cleaned = this.cleanScatterData(filtered);
 
-            console.log(`✅ ${cleaned.length} pistes chargées pour ${filterYear}`);
+            console.log(`${cleaned.length} pistes traitées pour ${filterYear}${genreText}`);
             return cleaned;
 
         } catch (error) {
-            console.error('❌ Erreur chargement données:', error);
+            console.error('Erreur traitement données:', error);
             return [];
         }
     }

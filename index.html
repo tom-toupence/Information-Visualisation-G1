@@ -83,6 +83,33 @@
     </a>
   </main>
 
+  <!-- DataLoader pour préférences persistantes -->
+  <script src="data/DataLoader.js"></script>
   <script src="js/dashboard.js"></script>
+  
+  <script>
+    // Gestion du sélecteur de genre dans le dashboard
+    document.addEventListener('DOMContentLoaded', () => {
+      const genreSelect = document.getElementById('genre-select');
+      
+      // Charger la préférence de genre sauvegardée
+      if (window.dataLoader) {
+        const prefs = window.dataLoader.getUserPreferences();
+        if (prefs.genre) {
+          genreSelect.value = prefs.genre;
+          console.log('Dashboard: Genre chargé depuis préférences:', prefs.genre);
+        }
+      }
+      
+      // Sauvegarder le genre quand il change
+      genreSelect.addEventListener('change', (e) => {
+        const selectedGenre = e.target.value;
+        if (window.dataLoader) {
+          window.dataLoader.saveUserPreferences({ genre: selectedGenre });
+          console.log('Dashboard: Genre sauvegardé:', selectedGenre || 'Tous les genres');
+        }
+      });
+    });
+  </script>
 </body>
 </html>

@@ -23,11 +23,20 @@ class ScatterDataMapper {
                 track_name: item.track_name || '',
                 artist_name: item.artist_name || '',
                 genre: item.genre || '',
+                year: item.year,
                 popularity: item.popularity,
                 danceability: item.danceability,
                 energy: item.energy,
                 valence: item.valence,
-                tempo: item.tempo
+                tempo: item.tempo,
+                // Nouvelles données pour le camembert
+                acousticness: item.acousticness,
+                instrumentalness: item.instrumentalness,
+                liveness: item.liveness,
+                speechiness: item.speechiness,
+                key: item.key,
+                mode: item.mode,
+                loudness: item.loudness
             }
         }));
     }

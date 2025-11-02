@@ -114,21 +114,135 @@ body {
 .select {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  font-size: 14px;
+  gap: 6px;
+  font-size: 13px;
   cursor: pointer;
 }
 
 .select select {
   background: var(--text);
   color: var(--bg-dark);
-  padding: 8px 12px;
-  border-radius: 6px;
+  padding: 6px 10px;
+  border-radius: 5px;
   border: 0;
   outline: none;
   cursor: pointer;
   font-size: 14px;
   font-weight: 500;
+}
+
+/* Groupe de contrôles dans la topbar */
+.controls-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Groupe de contrôles spécifique aux chansons */
+.songs-controls-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
+  padding: 12px 16px;
+  background: rgba(67, 76, 94, 0.4);
+  border-radius: 8px;
+  margin: 8px 12px;
+  border: 1px solid rgba(128, 139, 150, 0.2);
+  box-shadow: var(--shadow-1);
+}
+
+/* Conteneurs de tri */
+.sort-categories, .sort-order {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sort-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin-right: 6px;
+}
+
+/* Boutons de tri par catégorie */
+.sort-btn, .order-btn {
+  padding: 6px 10px;
+  background: rgba(55, 62, 77, 0.6);
+  border: 1px solid rgba(128, 139, 150, 0.3);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.order-btn {
+  padding: 6px 8px;
+  min-width: 30px;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+.sort-btn:hover, .order-btn:hover,
+.sort-btn.active, .order-btn.active {
+  background: var(--accent-1);
+  border-color: var(--accent-1);
+  color: white;
+  font-weight: 600;
+}
+
+
+
+/* Couleurs uniformes pour tous les boutons */
+
+
+
+/* Filtre par années */
+.year-filter {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 10px;
+  background: rgba(45, 52, 64, 0.5);
+  border-radius: 6px;
+  border: 1px solid rgba(128, 139, 150, 0.2);
+}
+
+.year-input {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.year-input input {
+  width: 75px;
+  padding: 6px 8px;
+  background: rgba(55, 62, 77, 0.6);
+  border: 1px solid rgba(128, 139, 150, 0.3);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.year-input input:focus {
+  outline: none;
+  border-color: var(--accent-1);
+  background: rgba(75, 85, 105, 0.8);
+}
+
+.year-input input::placeholder {
+  color: rgba(226, 226, 226, 0.6);
 }
 
 /* ============================================================================
@@ -390,3 +504,71 @@ svg text {
 .scatter-dot {
     cursor: pointer;
 }
+
+/* ============================================================================
+   TREE VISUALISATION AREA - centering and transparent background
+   ============================================================================ */
+#chart-area {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent; /* make the panel background transparent */
+  min-height: 70vh; /* ensure some vertical space for the viz */
+  width: 100%;
+}
+
+#chart-area svg {
+  display: block; /* avoid inline SVG whitespace */
+  background: transparent; /* ensure SVG background is transparent */
+  max-width: 100%;
+  height: auto;
+}
+
+/* ============================================================================
+   LOADING ANIMATION
+   ============================================================================ */
+.loading-placeholder {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
+  width: 100%;
+}
+
+.loading-dots {
+  display: flex;
+  gap: 8px;
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  background-color: var(--text);
+  border-radius: 50%;
+  animation: dotPulse 1.4s infinite ease-in-out both;
+}
+
+.dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+.dot:nth-child(3) {
+  animation-delay: 0s;
+}
+
+@keyframes dotPulse {
+  0%, 80%, 100% {
+    transform: scale(0.8);
+    opacity: 0.3;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+

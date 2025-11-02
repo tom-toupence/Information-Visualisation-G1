@@ -1,41 +1,36 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Spotimix</title>
 
   <!-- Font Awesome (icônes sidebar) -->
-  <link
-    rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
-    crossorigin="anonymous"
-    referrerpolicy="no-referrer"
-  />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
 
   <!-- D3 -->
   <script src="https://d3js.org/d3.v7.min.js"></script>
 
   <link rel="stylesheet" href="css/style.css" />
-  
+
 </head>
+
 <body>
   <!-- Sidebar -->
   <aside class="sidebar">
-    <a class="side-icon home" href="#" title="Dashboard">
+    <a class="side-icon home" href="index.html" title="Dashboard">
       <i class="fa-solid fa-house"></i>
     </a>
     <a class="side-icon" href="heatmap.html" title="Heatmap">
-        <i class="fa-solid fa-border-all"></i>
+      <i class="fa-solid fa-border-all"></i>
     </a>
-    <a class="side-icon" href="#" title="Graph 2">
-        <i class="fa-solid fa-superpowers"></i>
-    </a>
-    <a class="side-icon" href="#" title="Graph 3">
-        <i class="fa-solid fa-sliders"></i>
+    <a class="side-icon" href="genrasExplore.html" title="Exploration par genres">
+      <i class="fa-solid fa-circle-nodes"></i>
     </a>
     <a class="side-icon" href="scatter.html" title="Scatter Plot">
-        <i class="fa-solid fa-chart-pie"></i>
+      <i class="fa-solid fa-braille"></i>
     </a>
   </aside>
 
@@ -51,7 +46,6 @@
 
   <!-- Grille des rectangles -->
   <main class="dashboard">
-  
 
     <a class="panel panel--a" href="heatmap.html" aria-label="Ouvrir Heatmap">
       <div class="panel__title">Heatmap - Popularité des artistes</div>
@@ -60,22 +54,22 @@
       </div>
     </a>
 
-    <a class="panel panel--b" href="#" aria-label="Graph 3 (à venir)">
-      <div class="panel__title">Graph 2</div>
+    <a class="panel panel--b" href="#" aria-label="Graph à venir">
+      <div class="panel__title">Graph à venir</div>
       <div class="panel__body">
         <div class="coming-soon">🚧 Bientôt disponible</div>
       </div>
     </a>
 
-    <a class="panel panel--c" href="#" aria-label="Graph 4 (à venir)">
-      <div class="panel__title">Graph 3</div>
-      <div class="panel__body">
-        <div class="coming-soon">🚧 Bientôt disponible</div>
+    <a class="panel panel--c" href="genrasExplore.html" aria-label="Ouvrir Exploration par genres">
+      <div class="panel__title">Exploration par genres</div>
+      <div class="panel__body" id="preview-genres">
+        <!-- Mini preview généré par JS -->
       </div>
     </a>
 
-      <a class="panel panel--d" href="scatter.html" aria-label="Ouvrir Scatter Plot">
-      <div class="panel__title">Scatter Plot - Energy vs Danceability</div>
+    <a class="panel panel--d" href="scatter.html" aria-label="Ouvrir Scatter Plot">
+      <div class="panel__title">Scatter Plot - Energie vs Dansabilité</div>
       <div class="panel__body" id="preview-scatter">
         <!-- Mini preview généré par JS -->
       </div>
@@ -83,7 +77,7 @@
   </main>
 
   <!-- DataLoader pour préférences persistantes -->
-  <script src="js/DataLoader.js"></script>
+  <script type="module" src="js/DataLoader.js"></script>
   <script src="js/dashboard.js"></script>
   
   <script>
@@ -111,4 +105,5 @@
     });
   </script>
 </body>
+
 </html>

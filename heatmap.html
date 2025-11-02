@@ -19,14 +19,11 @@
         <a class="side-icon home" href="heatmap.html" title="Heatmap">
             <i class="fa-solid fa-border-all"></i>
         </a>
-        <a class="side-icon" href="#" title="Graph 2">
-            <i class="fa-solid fa-superpowers"></i>
-        </a>
-        <a class="side-icon" href="#" title="Graph 3">
-            <i class="fa-solid fa-sliders"></i>
+        <a class="side-icon" href="genrasExplore.html" title="Exploration par genres">
+            <i class="fa-solid fa-circle-nodes"></i>
         </a>
         <a class="side-icon" href="scatter.html" title="Scatter Plot">
-            <i class="fa-solid fa-chart-pie"></i>
+            <i class="fa-solid fa-braille"></i>
         </a>
     </aside>
 
@@ -66,7 +63,7 @@
     </main>
 
     <!-- Load required scripts -->
-    <script src="js/DataLoader.js"></script>
+    <script type="module" src="js/DataLoader.js"></script>
     <script src="js/HeatmapProcessor.js"></script>
     <script src="js/HeatmapChart.js"></script>
 
@@ -86,9 +83,8 @@
             try {
                 console.log('🔄 Initialisation de la heatmap...');
                 
-                // Utiliser le DataLoader pour charger les données
-                const dataLoader = DataLoader.getInstance();
-                allTracks = await dataLoader.loadSpotifyData();
+                // Utiliser le DataLoader global pour charger les données
+                allTracks = await window.dataLoader.loadSpotifyData();
                 
                 console.log(`📊 ${allTracks.length} pistes chargées`);
 
@@ -131,7 +127,6 @@
         // Configuration du filtre de genre
         function setupGenreFilter() {
             const genreSelect = d3.select('#genre-select');
-            const dataLoader = DataLoader.getInstance();
             
             // Utiliser HeatmapProcessor pour extraire les genres
             const uniqueGenres = HeatmapProcessor.getUniqueGenres(allTracks);
@@ -146,7 +141,7 @@
             });
             
             // Restaurer la préférence de genre depuis localStorage
-            const prefs = dataLoader.getUserPreferences();
+            const prefs = window.dataLoader.getUserPreferences();
             if (prefs.genre) {
                 currentGenreFilter = prefs.genre;
                 genreSelect.property('value', prefs.genre);
@@ -158,7 +153,7 @@
                 console.log('Genre sélectionné:', currentGenreFilter);
                 
                 // Sauvegarder dans LocalStorage pour synchronisation inter-pages
-                dataLoader.saveUserPreferences({ genre: currentGenreFilter });
+                window.dataLoader.saveUserPreferences({ genre: currentGenreFilter });
                 
                 updateHeatmap();
             });
@@ -277,8 +272,17 @@
                 .text(`${message}`);
         }
 
-        // Initialiser au chargement de la page
-        initHeatmap();
+        // Attendre que window.dataLoader soit disponible avant d'initialiser
+        function waitForDataLoader() {
+            if (window.dataLoader) {
+                initHeatmap();
+            } else {
+                // Réessayer après un court délai
+                setTimeout(waitForDataLoader, 50);
+            }
+        }
+
+        waitForDataLoader();
     </script>
 </body>
 

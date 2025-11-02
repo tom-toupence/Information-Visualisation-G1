@@ -5,23 +5,24 @@
  */
 class DataLoader {
     constructor() {
-        /** @type {Map<string, any>} Cache mémoire pour les données */
+        // Cache mémoire pour les données
         this.cache = new Map();
-        /** @type {string} Chemin du CSV */
-        this.dataPath = 'data/spotify_data.csv';
-        /** @type {string} Chemin du JSON des genres */
-        this.genresTreePath = 'data/music_genres_tree.json';
-        /** @type {string} Clé pour les préférences utilisateur */
+        // Chemin du CSV (dans assets/)
+        this.dataPath = 'assets/spotify_data.csv';
+        // Chemin du JSON des genres (dans assets/)
+        this.genresTreePath = 'assets/music_genres_tree.json';
+        // Chemin de l'index enrichi avec chansons
+        this.genreTreeFileName = 'assets/indexByGenreSongs.json';
+        // Clé pour les préférences utilisateur
         this.prefsKey = 'spotimix_user_prefs';
-        /** @type {boolean} Flag pour éviter les chargements multiples */
+        // Flag pour éviter les chargements multiples
         this.isLoading = false;
-        /** @type {Promise} Promise de chargement en cours */
+        // Promise de chargement en cours
         this.loadingPromise = null;
     }
 
     /**
      * Récupère l'instance singleton de DataLoader
-     * @returns {DataLoader} L'instance unique de DataLoader
      */
     static getInstance() {
         if (!DataLoader.instance) {
@@ -31,13 +32,12 @@ class DataLoader {
     }
 
     /**
-     * Charge les données Spotify (cache mémoire uniquement)
-     * @returns {Promise<SpotifyTrack[]>} Les données Spotify parsées
+     * Charge les données Spotify depuis le fichier CSV
      */
     async loadSpotifyData() {
         const cacheKey = 'spotify_data';
 
-        // 1. Si les données sont en cache mémoire, les retourner immédiatement
+        // Vérifier le cache
         if (this.cache.has(cacheKey)) {
             console.log('Using memory cache');
             return this.cache.get(cacheKey);
@@ -74,9 +74,6 @@ class DataLoader {
 
     /**
      * Parse les données brutes Spotify en objets typés
-     * @param {any[]} rawData - Les données brutes du CSV
-     * @returns {SpotifyTrack[]} Les données parsées et validées
-     * @private
      */
     parseSpotifyData(rawData) {
         return rawData.map((row, index) => {
@@ -85,22 +82,24 @@ class DataLoader {
                     artist_name: row.artist_name || '',
                     track_name: row.track_name || '',
                     track_id: row.track_id || `track_${index}`,
-                    popularity: this.parseNumber(row.popularity, 0),
-                    year: this.parseNumber(row.year, 2000),
-                    genre: row.genre || 'unknown',
-                    danceability: this.parseNumber(row.danceability, 0),
-                    energy: this.parseNumber(row.energy, 0),
-                    key: this.parseNumber(row.key, 0),
-                    loudness: this.parseNumber(row.loudness, 0),
-                    mode: this.parseNumber(row.mode, 0),
-                    speechiness: this.parseNumber(row.speechiness, 0),
-                    acousticness: this.parseNumber(row.acousticness, 0),
-                    instrumentalness: this.parseNumber(row.instrumentalness, 0),
-                    liveness: this.parseNumber(row.liveness, 0),
-                    valence: this.parseNumber(row.valence, 0),
-                    tempo: this.parseNumber(row.tempo, 120),
-                    duration_ms: this.parseNumber(row.duration_ms, 180000),
-                    time_signature: this.parseNumber(row.time_signature, 4)
+                    popularity: this.parseFloat(row.popularity, 0),
+                    danceability: this.parseFloat(row.danceability, 0),
+                    energy: this.parseFloat(row.energy, 0),
+                    key: this.parseInt(row.key, 0),
+                    loudness: this.parseFloat(row.loudness, 0),
+                    mode: this.parseInt(row.mode, 0),
+                    speechiness: this.parseFloat(row.speechiness, 0),
+                    acousticness: this.parseFloat(row.acousticness, 0),
+                    instrumentalness: this.parseFloat(row.instrumentalness, 0),
+                    liveness: this.parseFloat(row.liveness, 0),
+                    valence: this.parseFloat(row.valence, 0),
+                    tempo: this.parseFloat(row.tempo, 120),
+                    duration_ms: this.parseInt(row.duration_ms, 0),
+                    time_signature: this.parseInt(row.time_signature, 4),
+                    // Supporter les deux noms de colonnes pour le genre
+                    genre: row.genre || row.track_genre || 'unknown',
+                    track_genre: row.track_genre || row.genre || 'unknown',
+                    year: this.parseInt(row.year, null)
                 };
             } catch (error) {
                 console.warn(`Error parsing row ${index}:`, error);
@@ -110,21 +109,54 @@ class DataLoader {
     }
 
     /**
-     * Parse une valeur en nombre avec une valeur par défaut
-     * @param {any} value - La valeur à parser
-     * @param {number} defaultValue - La valeur par défaut
-     * @returns {number} Le nombre parsé ou la valeur par défaut
-     * @private
+     * Valide la structure de l'arbre de genres enrichi avec métriques
+     * @param {any} tree - L'objet à valider
+     * @returns {boolean} true si valide
      */
-    parseNumber(value, defaultValue) {
-        const parsed = parseFloat(value);
-        return isNaN(parsed) ? defaultValue : parsed;
+    validateEnrichedTree(tree) {
+        if (!tree || typeof tree !== 'object') {
+            return false;
+        }
+
+        if (typeof tree.name !== 'string') {
+            return false;
+        }
+
+        // Vérifier les métriques si présentes
+        if (tree.metrics && typeof tree.metrics !== 'object') {
+            return false;
+        }
+
+        // Vérifier les chansons si présentes
+        if (tree.songs && !Array.isArray(tree.songs)) {
+            return false;
+        }
+
+        // Validation récursive des enfants
+        if (tree.children && Array.isArray(tree.children)) {
+            return tree.children.every(child => this.validateEnrichedTree(child));
+        }
+
+        return true;
+    }
+
+    /**
+     * Récupère toutes les propriétés numériques disponibles des pistes
+     * @returns {Promise<string[]>} Liste des propriétés numériques
+     */
+    async getProps() {
+        const data = await this.loadSpotifyData();
+        if (data.length === 0) return [];
+
+        const sample = data[0];
+        return Object.keys(sample).filter(key => 
+            typeof sample[key] === 'number' && 
+            !['key', 'mode', 'time_signature', 'year', 'duration_ms'].includes(key)
+        );
     }
 
     /**
      * Récupère les propriétés d'un titre par son ID
-     * @param {string} id - L'ID du titre à rechercher
-     * @returns {Promise<SpotifyTrack|null>} Les propriétés du titre ou null si non trouvé
      */
     async getTrackById(id) {
         try {
@@ -139,21 +171,35 @@ class DataLoader {
 
     /**
      * Charge l'arbre des genres depuis le JSON
-     * @returns {Promise<Object>} L'arbre des genres
      */
     async loadGenresTree() {
+        const cacheKey = 'genres_tree';
+
         // Vérifier le cache mémoire
-        if (this.cache.has('genres_tree')) {
-            return this.cache.get('genres_tree');
+        if (this.cache.has(cacheKey)) {
+            console.log('📦 Arbre de genres chargé depuis le cache');
+            return this.cache.get(cacheKey);
         }
 
         try {
+            console.log('🔄 Chargement de l\'arbre de genres...');
             const response = await fetch(this.genresTreePath);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
             const genresTree = await response.json();
-            this.cache.set('genres_tree', genresTree);
+            
+            if (!genresTree || typeof genresTree !== 'object' || typeof genresTree.name !== 'string') {
+                throw new Error('Format invalide pour l\'arbre de genres');
+            }
+
+            this.cache.set(cacheKey, genresTree);
+            console.log('✅ Arbre de genres chargé avec succès');
             return genresTree;
         } catch (error) {
-            console.error('Error loading genres tree:', error);
+            console.error('❌ Erreur lors du chargement de l\'arbre de genres:', error);
             return { name: 'Music Genres', children: [] };
         }
     }
@@ -182,7 +228,6 @@ class DataLoader {
 
     /**
      * Récupère la liste des genres disponibles depuis music_genres_tree.json
-     * @returns {Promise<string[]>} Les genres disponibles triés alphabétiquement
      */
     async getAvailableGenres() {
         const genresTree = await this.loadGenresTree();
@@ -191,12 +236,36 @@ class DataLoader {
     }
 
     /**
+     * Charge l'arbre de genres enrichi avec les chansons et métriques
+     */
+    async loadGenreTreeWithSongs() {
+        const cacheKey = 'genre_tree_with_songs';
+
+        if (this.cache.has(cacheKey)) {
+            console.log('📦 Arbre enrichi chargé depuis le cache');
+            return this.cache.get(cacheKey);
+        }
+
+        try {
+            console.log('🔄 Chargement de l\'arbre de genres enrichi...');
+            const response = await fetch(this.genreTreeFileName);
+            const enriched = await response.json();
+
+            this.cache.set(cacheKey, enriched);
+            console.log('✅ Arbre de genres enrichi chargé avec succès');
+            return enriched;
+        } catch (error) {
+            console.error('❌ Erreur lors du chargement de l\'arbre enrichi:', error);
+            throw error;
+        }
+    }
+
+    /**
      * Récupère les statistiques des données
-     * @returns {Promise<{totalTracks: number, genreCount: number, yearRange: {min: number, max: number}}>}
      */
     async getStats() {
         const spotifyData = await this.loadSpotifyData();
-        const genres = new Set(spotifyData.map(track => track.genre));
+        const genres = new Set(spotifyData.map(track => track.genre || track.track_genre));
         const years = spotifyData.map(track => track.year).filter(y => y > 0);
         
         return {
@@ -252,11 +321,143 @@ class DataLoader {
     /**
      * Vide le cache mémoire
      */
+    /**
+     * Récupère tous les genres uniques
+     * @returns {Promise<string[]>} Liste des genres
+     */
+    async getGenres() {
+        const data = await this.loadSpotifyData();
+        const genres = new Set(data.map(track => track.track_genre).filter(Boolean));
+        return Array.from(genres).sort();
+    }
+
+    /**
+     * Récupère les statistiques de l'index des genres
+     * @returns {Promise<{totalTracks: number, totalGenres: number, avgTracksPerGenre: number}>}
+     */
+    async getGenreIndexStats() {
+        try {
+            const enrichedTree = await this.loadGenreTreeWithSongs();
+            const stats = this.calculateTreeStats(enrichedTree);
+            console.log('📊 Statistiques de l\'arbre enrichi:', stats);
+            return stats;
+        } catch (error) {
+            console.error('❌ Erreur lors du calcul des statistiques:', error);
+            return { totalTracks: 0, totalGenres: 0, avgTracksPerGenre: 0 };
+        }
+    }
+
+    /**
+     * Calcule récursivement les statistiques de l'arbre
+     */
+    calculateTreeStats(node) {
+        let totalTracks = 0;
+        let totalGenres = 0;
+
+        // Compter les chansons du nœud actuel
+        if (node.songs && Array.isArray(node.songs)) {
+            totalTracks += node.songs.length;
+        }
+
+        // Si c'est une feuille (pas d'enfants), compter comme genre
+        if (!node.children || node.children.length === 0) {
+            totalGenres += 1;
+        } else {
+            // Parcourir récursivement les enfants
+            for (const child of node.children) {
+                const childStats = this.calculateTreeStats(child);
+                totalTracks += childStats.totalTracks;
+                totalGenres += childStats.totalGenres;
+            }
+        }
+
+        return {
+            totalTracks,
+            totalGenres,
+            avgTracksPerGenre: totalGenres > 0 ? totalTracks / totalGenres : 0
+        };
+    }
+
+    /**
+     * Données par défaut en cas d'erreur de chargement
+     */
+    getDefaultData() {
+        return [
+            {
+                artist_name: 'Test Artist 1',
+                track_name: 'Test Track 1',
+                track_id: 'test1',
+                popularity: 75,
+                danceability: 0.8,
+                energy: 0.7,
+                key: 5,
+                loudness: -5,
+                mode: 1,
+                speechiness: 0.1,
+                acousticness: 0.2,
+                instrumentalness: 0.0,
+                liveness: 0.1,
+                valence: 0.8,
+                tempo: 120,
+                duration_ms: 180000,
+                time_signature: 4,
+                track_genre: 'pop',
+                year: 2023
+            },
+            {
+                artist_name: 'Test Artist 2',
+                track_name: 'Test Track 2',
+                track_id: 'test2',
+                popularity: 65,
+                danceability: 0.6,
+                energy: 0.9,
+                key: 2,
+                loudness: -3,
+                mode: 0,
+                speechiness: 0.05,
+                acousticness: 0.1,
+                instrumentalness: 0.2,
+                liveness: 0.3,
+                valence: 0.6,
+                tempo: 140,
+                duration_ms: 200000,
+                time_signature: 4,
+                track_genre: 'rock',
+                year: 2022
+            }
+        ];
+    }
+
+    /**
+     * Parse sécurisé des nombres flottants
+     * @param {any} value - Valeur à parser
+     * @param {number} defaultValue - Valeur par défaut
+     * @returns {number} Nombre parsé
+     */
+    parseFloat(value, defaultValue) {
+        const parsed = parseFloat(value);
+        return isNaN(parsed) ? defaultValue : parsed;
+    }
+
+    /**
+     * Parse sécurisé des entiers
+     * @param {any} value - Valeur à parser
+     * @param {number|null} defaultValue - Valeur par défaut
+     * @returns {number|null} Entier parsé
+     */
+    parseInt(value, defaultValue) {
+        const parsed = parseInt(value);
+        return isNaN(parsed) ? defaultValue : parsed;
+    }
+
+    /**
+     * Vide le cache mémoire
+     */
     clearCache() {
         this.cache.clear();
         this.isLoading = false;
         this.loadingPromise = null;
-        console.log('Memory cache cleared');
+        console.log('🗑️ Cache mémoire vidé');
     }
 
     /**
@@ -264,7 +465,7 @@ class DataLoader {
      */
     clearPreferences() {
         localStorage.removeItem(this.prefsKey);
-        console.log('User preferences cleared');
+        console.log('🗑️ Préférences utilisateur effacées');
     }
 
     /**
@@ -281,7 +482,19 @@ class DataLoader {
             preferences: this.getUserPreferences()
         };
     }
+
+    /**
+     * Récupère la taille du cache
+     */
+    getCacheSize() {
+        return this.cache.size;
+    }
 }
 
+// Export pour les modules ES6 ET exposition globale
+export { DataLoader };
+
 // Créer et exposer l'instance singleton globalement
-window.dataLoader = DataLoader.getInstance();
+if (typeof window !== 'undefined') {
+    window.dataLoader = DataLoader.getInstance();
+}

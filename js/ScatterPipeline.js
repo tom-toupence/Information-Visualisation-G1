@@ -85,6 +85,11 @@ async function renderScatter(year, genre = '') {
 
 // Attendre que le DOM soit chargé
 document.addEventListener('DOMContentLoaded', async () => {
+    // Attendre que window.dataLoader soit disponible
+    while (!window.dataLoader) {
+        await new Promise(resolve => setTimeout(resolve, 50));
+    }
+
     console.log('Initialisation du Scatter Plot...');
     console.log('Pipeline : DataLoader → ScatterProcessor → ScatterMapper → ScatterChart');
 

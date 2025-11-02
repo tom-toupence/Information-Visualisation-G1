@@ -19,7 +19,7 @@ class HeatmapProcessor {
                 track => track.genre && track.genre.toLowerCase() === genre.toLowerCase()
             );
         }
-        
+
         // Filtrer par plage d'années si spécifié
         if (yearMin !== null || yearMax !== null) {
             filteredTracks = filteredTracks.filter(track => {
@@ -35,7 +35,7 @@ class HeatmapProcessor {
 
         filteredTracks.forEach(track => {
             const key = `${track.artist_name}|${track.year}`;
-            
+
             if (!groupedData.has(key)) {
                 groupedData.set(key, {
                     artist: track.artist_name,
@@ -60,10 +60,10 @@ class HeatmapProcessor {
         groupedData.forEach((data) => {
             // Trier les chansons par popularité
             data.songs.sort((a, b) => b.popularity - a.popularity);
-            
+
             // Garder le top 5
             const top5Songs = data.songs.slice(0, 5);
-            
+
             // Calculer la popularité moyenne
             const avgPopularity = data.songs.reduce(
                 (sum, song) => sum + song.popularity, 0
@@ -153,14 +153,14 @@ class HeatmapProcessor {
      */
     static getYearRange(tracks) {
         const globalMinYear = tracks.reduce(
-            (min, t) => !isNaN(t.year) && t.year < min ? t.year : min, 
+            (min, t) => !isNaN(t.year) && t.year < min ? t.year : min,
             Infinity
         );
         const globalMaxYear = tracks.reduce(
-            (max, t) => !isNaN(t.year) && t.year > max ? t.year : max, 
+            (max, t) => !isNaN(t.year) && t.year > max ? t.year : max,
             -Infinity
         );
-        
+
         return { min: globalMinYear, max: globalMaxYear };
     }
 
@@ -185,9 +185,4 @@ class HeatmapProcessor {
             .filter(year => !isNaN(year))
             .sort((a, b) => a - b);
     }
-}
-
-// Export pour utilisation dans d'autres fichiers
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = HeatmapProcessor;
 }

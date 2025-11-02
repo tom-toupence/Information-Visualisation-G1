@@ -1,24 +1,22 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Scatter Plot - Spotimix</title>
 
   <!-- Font Awesome -->
-  <link
-    rel="stylesheet"
-    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
-    crossorigin="anonymous"
-    referrerpolicy="no-referrer"
-  />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    crossorigin="anonymous" referrerpolicy="no-referrer" />
 
   <!-- D3 -->
   <script src="https://d3js.org/d3.v7.min.js"></script>
 
   <link rel="stylesheet" href="css/style.css" />
-  
+
 </head>
+
 <body>
   <!-- Sidebar -->
   <aside class="sidebar">
@@ -28,14 +26,11 @@
     <a class="side-icon" href="heatmap.html" title="Heatmap">
       <i class="fa-solid fa-border-all"></i>
     </a>
-    <a class="side-icon" href="#" title="Graph 2">
-        <i class="fa-solid fa-chart-pie"></i>
-    </a>
-    <a class="side-icon" href="#" title="Graph 3">
-        <i class="fa-solid fa-sliders"></i>
+    <a class="side-icon" href="genrasExplore.html" title="Exploration par genres">
+      <i class="fa-solid fa-circle-nodes"></i>
     </a>
     <a class="side-icon home" href="scatter.html" title="Scatter Plot">
-      <i class="fa-solid fa-chart-scatter"></i>
+      <i class="fa-solid fa-braille"></i>
     </a>
   </aside>
 
@@ -105,10 +100,11 @@
   </main>
 
   <!-- Pipeline JS : DataLoader → Processor → Mapper → Chart → App -->
-  <script src="js/DataLoader.js"></script>
+  <script type="module" src="js/DataLoader.js"></script>
   <script src="js/ScatterProcessor.js"></script>
   <script src="js/ScatterMapper.js"></script>
   <script src="js/ScatterChart.js"></script>
   <script src="js/ScatterPipeline.js"></script>
 </body>
+
 </html>

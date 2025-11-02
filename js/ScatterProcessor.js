@@ -1,7 +1,6 @@
 class ScatterDataProcessor {
     constructor() {
-        // DataLoader sera accessible via window.dataLoader (chargé avant)
-        this.dataLoader = window.dataLoader;
+        // DataLoader sera accessible via window.dataLoader (chargé comme module)
     }
 
     /**
@@ -16,8 +15,8 @@ class ScatterDataProcessor {
             const genreText = filterGenre ? ` et genre "${filterGenre}"` : '';
             console.log(`Traitement des données pour l'année ${filterYear}${genreText}...`);
             
-            // Charger les données via DataLoader
-            const allData = await this.dataLoader.loadSpotifyData();
+            // Charger les données via DataLoader (accès global)
+            const allData = await window.dataLoader.loadSpotifyData();
 
             // Filtrer par année
             let filtered = allData.filter(track => track.year === filterYear);

@@ -52,8 +52,7 @@
                     <option value="avg_popularity">Taille par popularité</option>
                 </select>
             </label>
-            <label class="slider-control" id="songs-limit-control" style="display: none;">
-                <span>Titres: </span>
+            <label class="select" id="songs-limit-control" style="display: none;">
                 <select id="songs-limit-select">
                     <option value="5">5 titres</option>
                     <option value="10" selected>10 titres</option>
@@ -71,8 +70,11 @@
             <div id="chart-area">
                 <!-- La visualisation sera rendue ici -->
                 <div class="loading-placeholder">
-                    <i class="fa-solid fa-music fa-3x"></i>
-                    <p>Chargement de l'arbre des genres...</p>
+                    <div class="loading-dots">
+                        <span class="dot"></span>
+                        <span class="dot"></span>
+                        <span class="dot"></span>
+                    </div>
                 </div>
             </div>
         </div>

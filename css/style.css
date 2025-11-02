@@ -130,19 +130,6 @@ body {
   gap: 16px;
 }
 
-/* Contrôle de slider pour le nombre de titres */
-.slider-control {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 14px;
-  color: var(--text);
-}
-
-.slider-control span {
-  font-weight: 500;
-}
-
 /* ============================================================================
    DASHBOARD (Grille de panels)
    ============================================================================ */
@@ -407,6 +394,53 @@ svg text {
   background: transparent; /* ensure SVG background is transparent */
   max-width: 100%;
   height: auto;
+}
+
+/* ============================================================================
+   LOADING ANIMATION
+   ============================================================================ */
+.loading-placeholder {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 400px;
+  width: 100%;
+}
+
+.loading-dots {
+  display: flex;
+  gap: 8px;
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  background-color: var(--text);
+  border-radius: 50%;
+  animation: dotPulse 1.4s infinite ease-in-out both;
+}
+
+.dot:nth-child(1) {
+  animation-delay: -0.32s;
+}
+
+.dot:nth-child(2) {
+  animation-delay: -0.16s;
+}
+
+.dot:nth-child(3) {
+  animation-delay: 0s;
+}
+
+@keyframes dotPulse {
+  0%, 80%, 100% {
+    transform: scale(0.8);
+    opacity: 0.3;
+  }
+  40% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 

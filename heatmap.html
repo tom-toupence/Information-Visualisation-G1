@@ -7,26 +7,27 @@
     <title>SPOTIMIX - Heatmap</title>
     <script src="https://d3js.org/d3.v7.min.js"></script>
     <link rel="stylesheet" href="../css/style.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+        crossorigin="anonymous" referrerpolicy="no-referrer">
 </head>
 
 <body>
     <!-- Sidebar -->
     <aside class="sidebar">
-        <a class="side-icon home" href="../index.html" title="Dashboard">
+        <a class="side-icon" href="index.html" title="Dashboard">
             <i class="fa-solid fa-house"></i>
         </a>
-        <a class="side-icon" href="heatmap.html" title="Heatmap">
+        <a class="side-icon home" href="heatmap.html" title="Heatmap">
             <i class="fa-solid fa-border-all"></i>
         </a>
-        <a class="side-icon" href="#" title="Graph 2">
+        <a class="side-icon" href="scatter.html" title="Scatter Plot">
+            <i class="fa-solid fa-chart-scatter"></i>
+        </a>
+        <a class="side-icon" href="genrasExplore.html" title="Exploration par genres">
             <i class="fa-solid fa-chart-pie"></i>
         </a>
-        <a class="side-icon" href="#" title="Graph 3">
+        <a class="side-icon" href="#" title="Graph à venir">
             <i class="fa-solid fa-sliders"></i>
-        </a>
-        <a class="side-icon" href="../scatter.html" title="Scatter Plot">
-            <i class="fa-solid fa-chart-scatter"></i>
         </a>
     </aside>
 
@@ -73,23 +74,23 @@
     <!-- Script for Heatmap -->
     <script>
         console.log('🎨 Heatmap page loaded');
-        
+
         // Variables globales pour les filtres actifs
         let allTracks = [];
         let currentGenreFilter = 'Choisir un genre';
         let currentYearMin = null;
         let currentYearMax = null;
         let heatmapChart = null;
-        
+
         // Fonction principale pour initialiser la heatmap
         async function initHeatmap() {
             try {
                 console.log('🔄 Initialisation de la heatmap...');
-                
+
                 // Utiliser le DataLoader pour charger les données
                 const dataLoader = DataLoader.getInstance();
                 allTracks = await dataLoader.loadSpotifyData();
-                
+
                 console.log(`📊 ${allTracks.length} pistes chargées`);
 
                 // Créer l'instance de HeatmapChart
@@ -118,7 +119,7 @@
                 currentYearMin,
                 currentYearMax
             );
-            
+
             console.log(`📈 ${heatmapData.length} cellules de heatmap créées`);
 
             // Limiter aux top 30 artistes
@@ -131,21 +132,21 @@
         // Configuration du filtre de genre
         function setupGenreFilter() {
             const genreSelect = d3.select('#genre-select');
-            
+
             // Utiliser HeatmapProcessor pour extraire les genres
             const uniqueGenres = HeatmapProcessor.getUniqueGenres(allTracks);
-            
+
             console.log(`🎵 ${uniqueGenres.length} genres trouvés`);
-            
+
             // Ajouter chaque genre au select
             uniqueGenres.forEach(genre => {
                 genreSelect.append('option')
                     .text(genre.charAt(0).toUpperCase() + genre.slice(1))
                     .attr('value', genre);
             });
-            
+
             // Gérer le changement de filtre
-            genreSelect.on('change', function() {
+            genreSelect.on('change', function () {
                 currentGenreFilter = this.value;
                 console.log('Genre sélectionné:', currentGenreFilter);
                 updateHeatmap();
@@ -156,98 +157,98 @@
         function setupYearFilter() {
             const yearMinSelect = d3.select('#year-min-select');
             const yearMaxSelect = d3.select('#year-max-select');
-            
+
             // Utiliser HeatmapProcessor pour extraire les années
             const uniqueYears = HeatmapProcessor.getUniqueYears(allTracks);
-            
+
             console.log(`📅 ${uniqueYears.length} années trouvées: ${uniqueYears[0]} - ${uniqueYears[uniqueYears.length - 1]}`);
-            
+
             // Ajouter chaque année aux deux selects
             uniqueYears.forEach(year => {
                 yearMinSelect.append('option')
                     .text(year)
                     .attr('value', year);
-                    
+
                 yearMaxSelect.append('option')
                     .text(year)
                     .attr('value', year);
             });
-            
+
             // Gérer le changement de filtre min
-            yearMinSelect.on('change', function() {
+            yearMinSelect.on('change', function () {
                 const selectedMin = this.value ? parseInt(this.value) : null;
-                
+
                 if (selectedMin === null) {
                     currentYearMin = null;
                     updateYearMaxOptions(uniqueYears, null);
                     updateHeatmap();
                     return;
                 }
-                
+
                 if (currentYearMax !== null && selectedMin > currentYearMax) {
                     yearMaxSelect.property('value', '');
                     currentYearMax = null;
                 }
-                
+
                 currentYearMin = selectedMin;
                 updateYearMaxOptions(uniqueYears, currentYearMin);
                 updateHeatmap();
             });
-            
+
             // Gérer le changement de filtre max
-            yearMaxSelect.on('change', function() {
+            yearMaxSelect.on('change', function () {
                 const selectedMax = this.value ? parseInt(this.value) : null;
-                
+
                 if (selectedMax === null) {
                     currentYearMax = null;
                     updateYearMinOptions(uniqueYears, null);
                     updateHeatmap();
                     return;
                 }
-                
+
                 if (currentYearMin !== null && selectedMax < currentYearMin) {
                     yearMinSelect.property('value', '');
                     currentYearMin = null;
                 }
-                
+
                 currentYearMax = selectedMax;
                 updateYearMinOptions(uniqueYears, currentYearMax);
                 updateHeatmap();
             });
-            
+
             function updateYearMinOptions(years, maxYear) {
                 const currentValue = yearMinSelect.property('value');
                 yearMinSelect.selectAll('option:not([value=""])').remove();
-                
+
                 years.forEach(year => {
                     const option = yearMinSelect.append('option')
                         .text(year)
                         .attr('value', year);
-                    
+
                     if (maxYear !== null && year > maxYear) {
                         option.attr('disabled', 'disabled').style('color', '#999');
                     }
                 });
-                
+
                 if (currentValue && (maxYear === null || parseInt(currentValue) <= maxYear)) {
                     yearMinSelect.property('value', currentValue);
                 }
             }
-            
+
             function updateYearMaxOptions(years, minYear) {
                 const currentValue = yearMaxSelect.property('value');
                 yearMaxSelect.selectAll('option:not([value=""])').remove();
-                
+
                 years.forEach(year => {
                     const option = yearMaxSelect.append('option')
                         .text(year)
                         .attr('value', year);
-                    
+
                     if (minYear !== null && year < minYear) {
                         option.attr('disabled', 'disabled').style('color', '#999');
                     }
                 });
-                
+
                 if (currentValue && (minYear === null || parseInt(currentValue) >= minYear)) {
                     yearMaxSelect.property('value', currentValue);
                 }

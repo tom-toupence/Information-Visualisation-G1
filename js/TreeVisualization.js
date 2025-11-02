@@ -17,7 +17,7 @@ export class TreeVisualization {
 
         // Configuration des métriques (version minimale)
         /** @type {string} */
-        this.colorMetric = 'none'; // 'none', 'danceability', 'energy', 'popularity'
+        this.colorMetric = 'energy'; // 'none', 'danceability', 'energy', 'popularity'
         /** @type {string} */
         this.sizeMetric = 'count'; // 'count', 'avg_popularity'
 
@@ -118,7 +118,7 @@ export class TreeVisualization {
 
         // Créer la visualisation initiale
         this.renderBubbles(mainGroup, width - margin.left - margin.right, height - margin.top - margin.bottom);
-        
+
         // Notifier le changement si callback défini (pour mettre à jour la visibilité des contrôles)
         if (this.onNavigationChange) {
             this.onNavigationChange();
@@ -495,6 +495,9 @@ export class TreeVisualization {
      */
     goBack() {
         if (this.navigationHistory.length > 1) {
+            // Fermer la popup des titres si elle est visible
+            this.hideInfoPanel();
+
             this.navigationHistory.pop();
             this.currentNode = this.navigationHistory[this.navigationHistory.length - 1];
             console.log(`Retour vers: ${this.currentNode.name}`);
@@ -921,13 +924,14 @@ export class TreeVisualization {
             font-size: 12px;
             font-weight: bold;
             transition: transform 0.2s ease;
+            transform: rotate(-90deg);
         `;
-        toggleIcon.textContent = '▼';
+        toggleIcon.textContent = '▶';
 
         const content = document.createElement('div');
         content.style.cssText = `
             padding: 0 12px 12px 12px;
-            display: block;
+            display: none;
         `;
 
         const infoGrid = document.createElement('div');
@@ -977,7 +981,7 @@ export class TreeVisualization {
         content.appendChild(infoGrid);
 
         // Événement de clic pour collapse/expand
-        let isCollapsed = false;
+        let isCollapsed = true; // Commencer fermé par défaut
         header.addEventListener('click', () => {
             isCollapsed = !isCollapsed;
             if (isCollapsed) {

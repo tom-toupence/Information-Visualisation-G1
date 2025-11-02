@@ -26,43 +26,67 @@
     <a class="side-icon" href="heatmap.html" title="Heatmap">
       <i class="fa-solid fa-border-all"></i>
     </a>
-    <a class="side-icon home" href="scatter.html" title="Scatter Plot">
-      <i class="fa-solid fa-chart-scatter"></i>
-    </a>
     <a class="side-icon" href="genrasExplore.html" title="Exploration par genres">
-      <i class="fa-solid fa-chart-pie"></i>
+      <i class="fa-solid fa-circle-nodes"></i>
     </a>
-    <a class="side-icon" href="#" title="Graph à venir">
-      <i class="fa-solid fa-sliders"></i>
+    <a class="side-icon home" href="scatter.html" title="Scatter Plot">
+      <i class="fa-solid fa-braille"></i>
     </a>
   </aside>
 
   <!-- Topbar -->
   <header class="topbar">
     <h1 class="brand">SCATTER PLOT</h1>
-    <label class="select">
-      <select id="year-select">
-        <option value="2023">2023</option>
-        <option value="2022">2022</option>
-        <option value="2021">2021</option>
-        <option value="2020">2020</option>
-        <option value="2019">2019</option>
-        <option value="2018">2018</option>
-        <option value="2017">2017</option>
-        <option value="2016">2016</option>
-        <option value="2015">2015</option>
-      </select>
-    </label>
+    <div style="display: flex; gap: 15px; align-items: center;">
+      <label class="select">
+        <span style="margin-right: 8px; color: #999;">Genre:</span>
+        <select id="genre-select">
+          <option value="">Tous les genres</option>
+        </select>
+      </label>
+      <label class="select">
+        <span style="margin-right: 8px; color: #999;">Année:</span>
+        <select id="year-select">
+          <option value="2023">2023</option>
+          <option value="2022">2022</option>
+          <option value="2021">2021</option>
+          <option value="2020">2020</option>
+          <option value="2019">2019</option>
+          <option value="2018">2018</option>
+          <option value="2017">2017</option>
+          <option value="2016">2016</option>
+          <option value="2015">2015</option>
+          <option value="2014">2014</option>
+          <option value="2013">2013</option>
+          <option value="2012">2012</option>
+          <option value="2011">2011</option>
+          <option value="2010">2010</option>
+          <option value="2009">2009</option>
+          <option value="2008">2008</option>
+          <option value="2007">2007</option>
+          <option value="2006">2006</option>
+          <option value="2005">2005</option>
+          <option value="2004">2004</option>
+          <option value="2003">2003</option>
+          <option value="2002">2002</option>
+          <option value="2001">2001</option>
+          <option value="2000">2000</option>
+        </select>
+      </label>
+      <div id="cache-badge" style="padding: 4px 10px; background: rgba(121, 114, 168, 0.2); border-radius: 12px; font-size: 11px; color: #aaa; display: none;">
+        <i class="fa-solid fa-database"></i> <span id="cache-status">Loading...</span>
+      </div>
+    </div>
   </header>
 
   <!-- Contenu principal -->
   <main class="scatter-page">
     <div class="info-banner">
       <div class="info-content">
-        <strong>💡 Mode d'emploi :</strong>
-        Utilisez le <strong>brush</strong> (cliquer-glisser) pour sélectionner une zone •
-        Les points se colorent selon leur popularité •
-        Survolez pour voir les détails
+        <strong>Mode d'emploi :</strong>
+        <strong>Survolez</strong> un point pour voir les infos • 
+        <strong>Cliquez</strong> sur un point pour des détails complets • 
+        Utilisez le <strong>brush</strong> (cliquer-glisser) pour sélectionner une zone
       </div>
     </div>
 
@@ -75,11 +99,12 @@
     </div>
   </main>
 
-  <!-- Pipeline JS : Processor → Mapper → Chart → App -->
+  <!-- Pipeline JS : DataLoader → Processor → Mapper → Chart → App -->
+  <script type="module" src="js/DataLoader.js"></script>
   <script src="js/ScatterProcessor.js"></script>
   <script src="js/ScatterMapper.js"></script>
   <script src="js/ScatterChart.js"></script>
-  <script src="js/scatter-app.js"></script>
+  <script src="js/ScatterPipeline.js"></script>
 </body>
 
 </html>

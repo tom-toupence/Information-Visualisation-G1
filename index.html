@@ -26,14 +26,11 @@
     <a class="side-icon" href="heatmap.html" title="Heatmap">
       <i class="fa-solid fa-border-all"></i>
     </a>
-    <a class="side-icon" href="scatter.html" title="Scatter Plot">
-      <i class="fa-solid fa-chart-scatter"></i>
-    </a>
     <a class="side-icon" href="genrasExplore.html" title="Exploration par genres">
-      <i class="fa-solid fa-chart-pie"></i>
+      <i class="fa-solid fa-circle-nodes"></i>
     </a>
-    <a class="side-icon" href="#" title="Graph à venir">
-      <i class="fa-solid fa-sliders"></i>
+    <a class="side-icon" href="scatter.html" title="Scatter Plot">
+      <i class="fa-solid fa-braille"></i>
     </a>
   </aside>
 
@@ -43,17 +40,12 @@
     <label class="select">
       <select id="genre-select">
         <option value="">Tous les genres</option>
-        <option value="pop">Pop</option>
-        <option value="rock">Rock</option>
-        <option value="rap">Rap</option>
-        <option value="electronic">Electronic</option>
       </select>
     </label>
   </header>
 
   <!-- Grille des rectangles -->
   <main class="dashboard">
-
 
     <a class="panel panel--a" href="heatmap.html" aria-label="Ouvrir Heatmap">
       <div class="panel__title">Heatmap - Popularité des artistes</div>
@@ -62,29 +54,56 @@
       </div>
     </a>
 
-    <a class="panel panel--b" href="#" aria-label="Graph 3 (à venir)">
-      <div class="panel__title">Graph 2</div>
+    <a class="panel panel--b" href="#" aria-label="Graph à venir">
+      <div class="panel__title">Graph à venir</div>
       <div class="panel__body">
         <div class="coming-soon">🚧 Bientôt disponible</div>
       </div>
     </a>
 
-    <a class="panel panel--c" href="#" aria-label="Graph 4 (à venir)">
-      <div class="panel__title">Graph 3</div>
-      <div class="panel__body">
-        <div class="coming-soon">🚧 Bientôt disponible</div>
+    <a class="panel panel--c" href="genrasExplore.html" aria-label="Ouvrir Exploration par genres">
+      <div class="panel__title">Exploration par genres</div>
+      <div class="panel__body" id="preview-genres">
+        <!-- Mini preview généré par JS -->
       </div>
     </a>
 
     <a class="panel panel--d" href="scatter.html" aria-label="Ouvrir Scatter Plot">
-      <div class="panel__title">Scatter Plot - Energy vs Danceability</div>
+      <div class="panel__title">Scatter Plot - Energie vs Dansabilité</div>
       <div class="panel__body" id="preview-scatter">
         <!-- Mini preview généré par JS -->
       </div>
     </a>
   </main>
 
+  <!-- DataLoader pour préférences persistantes -->
+  <script type="module" src="js/DataLoader.js"></script>
   <script src="js/dashboard.js"></script>
+  
+  <script>
+    // Gestion du sélecteur de genre dans le dashboard
+    document.addEventListener('DOMContentLoaded', () => {
+      const genreSelect = document.getElementById('genre-select');
+      
+      // Charger la préférence de genre sauvegardée
+      if (window.dataLoader) {
+        const prefs = window.dataLoader.getUserPreferences();
+        if (prefs.genre) {
+          genreSelect.value = prefs.genre;
+          console.log('Dashboard: Genre chargé depuis préférences:', prefs.genre);
+        }
+      }
+      
+      // Sauvegarder le genre quand il change
+      genreSelect.addEventListener('change', (e) => {
+        const selectedGenre = e.target.value;
+        if (window.dataLoader) {
+          window.dataLoader.saveUserPreferences({ genre: selectedGenre });
+          console.log('Dashboard: Genre sauvegardé:', selectedGenre || 'Tous les genres');
+        }
+      });
+    });
+  </script>
 </body>
 
 </html>

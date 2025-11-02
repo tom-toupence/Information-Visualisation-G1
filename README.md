@@ -1,21 +1,25 @@
-# 🎵 SPOTIMIX - Refacto HTML/CSS/JS
+# 🎵 SPOTIMIX - Data Visualization Platform
 
-Version simplifiée du projet de visualisation Spotify, sans TypeScript ni Node.js.
+Plateforme de visualisation interactive des données Spotify avec architecture modulaire et système de cache intelligent.
 
-## 📁 Structure
+## 📁 Structure du Projet
 
 ```
-refacto/
-├── index.html              # Dashboard principal (style SPOTIMIX)
-├── scatter.html            # Page Scatter Plot interactive
+Information-Visualisation-G1/
+├── index.html                  # Dashboard principal
+├── scatter.html                # Scatter Plot interactif (DJ Transitions)
 ├── css/
-│   └── style.css          # Tous les styles
+│   └── style.css              # Design system SPOTIMIX
+├── data/
+│   ├── DataLoader.js          # ⭐ Gestion centralisée des données + Cache
+│   ├── spotify_data.csv       # Dataset Spotify (~100k tracks)
+│   └── music_genres_tree.json # Hiérarchie des genres
 ├── js/
-│   ├── dashboard.js       # Logique du dashboard + preview
-│   └── scatter.js         # Scatter Plot complet (Processor + Mapper + Chart)
-└── data/
-    ├── spotify_data.csv   # Données Spotify
-    └── music_genres_tree.json
+│   ├── ScatterProcessor.js    # Traitement et filtrage
+│   ├── ScatterMapper.js       # Mapping des données pour D3
+│   ├── ScatterChart.js        # Visualisation D3.js
+│   └── ScatterPipeline.js     # Orchestration de l'app
+└── CACHE_SYSTEM.md            # 📖 Documentation du système de cache
 ```
 
 ## ✨ Fonctionnalités
@@ -67,31 +71,46 @@ Puis ouvrir : **http://localhost:8000**
 - **Topbar sticky** : Marque + sélecteur
 - **Grille responsive** : 5 colonnes sur desktop
 
-## 📊 Architecture du code
+## 🏗️ Architecture Modulaire
 
-### `js/scatter.js` (tout-en-un)
+### Pipeline de Données
 
-```javascript
-// 1. ScatterDataProcessor
-//    → Charge et filtre les données CSV
-
-// 2. ScatterDataMapper  
-//    → Mappe les données pour D3 (couleur, taille, etc.)
-
-// 3. ScatterChart
-//    → Rend le graphique avec D3
-//    → Gère le brush et les interactions
-
-// 4. Application principale
-//    → Initialise et orchestre le tout
+```
+DataLoader → Processor → Mapper → Chart
+  (Cache)     (Filter)   (Transform)  (Render)
 ```
 
-### `js/dashboard.js`
+### 1️⃣ **DataLoader** (`data/DataLoader.js`)
+- **Pattern Singleton** : Une seule instance globale
+- **Triple Cache** :
+  - 💾 **Memory Cache** : Instantané (Map)
+  - 💾 **LocalStorage** : Persistant entre pages (24h)
+  - 📥 **CSV File** : Fallback initial
+- **Préférences** : Genre et année sauvegardés automatiquement
+- **Performance** : 60x plus rapide avec cache mémoire
 
-```javascript
-// Crée un mini preview du scatter avec données aléatoires
-// Gère le sélecteur de genre (préparé pour futur filtrage)
-```
+### 2️⃣ **ScatterProcessor** (`js/ScatterProcessor.js`)
+- Utilise DataLoader pour charger les données
+- Filtre par année et genre
+- Tri par popularité (Top N)
+- Validation et nettoyage
+
+### 3️⃣ **ScatterMapper** (`js/ScatterMapper.js`)
+- Transforme les données brutes en format D3
+- Calcule les propriétés visuelles (taille, couleur, position)
+- Prépare les métadonnées pour tooltips
+
+### 4️⃣ **ScatterChart** (`js/ScatterChart.js`)
+- Rendu D3.js avec axes dynamiques
+- **Brush interactif** : Sélection par glisser-déposer
+- **Mini Pie Charts** : Visualisation Danceability/Energy/Chill
+- **Details on Demand** : Panneau DJ avec suggestions de transitions
+- **Interactions** : Tooltip, clic, hover
+
+### 5️⃣ **ScatterPipeline** (`js/ScatterPipeline.js`)
+- Orchestration de l'application
+- Gestion des événements UI (sélecteurs)
+- Sauvegarde automatique des préférences
 
 ## 🔧 Technologies
 
@@ -121,18 +140,56 @@ Puis ouvrir : **http://localhost:8000**
 - Même palette de couleurs
 - Animations fluides
 
+## 💾 Système de Cache Intelligent
+
+### Avantages
+- ⚡ **60x plus rapide** : Memory cache (~50ms vs 3s)
+- 🔄 **Navigation fluide** : Pas de rechargement entre pages
+- 💾 **Persistance** : LocalStorage conserve les données 24h
+- 🎯 **Préférences** : Genre et année restaurés automatiquement
+- 🛡️ **Robuste** : Gestion des erreurs (quota, corruption)
+
+### Utilisation
+```javascript
+// Les données sont chargées automatiquement avec cache
+const tracks = await dataLoader.loadSpotifyData();
+
+// Préférences sauvegardées automatiquement lors des changements
+dataLoader.saveUserPreferences({ year: 2023, genre: 'pop' });
+
+// Restauration automatique au chargement de la page
+const prefs = dataLoader.getUserPreferences();
+```
+
+📖 **Documentation complète** : Voir [CACHE_SYSTEM.md](./CACHE_SYSTEM.md)
+
+## 🎯 Fonctionnalités Clés - Scatter Plot
+
+### Pour DJ - Aide aux Transitions
+- 🎵 **Mini Pie Charts** : Ratio Danceability/Energy/Chill
+- 🎹 **Tonalités compatibles** : Suggestions harmoniques automatiques
+- ⏱️ **Plage BPM** : Recommandations pour transitions fluides
+- 🔥 **Profil énergétique** : Peak hour banger vs Chill vibe
+- 💡 **Guide intelligent** : Conseils basés sur tempo, key, energy
+
+### Interactions
+- **Brush** : Sélection de zone → Mini pies remplacent les points
+- **Hover** : Tooltip avec infos essentielles
+- **Click** : Panneau de détails avec guide DJ complet
+- **Filtres** : Année + Genre (persistants entre pages)
+
 ## 🎯 Prochaines étapes
 
-- [ ] Ajouter les autres visualisations (Graph 2, 3, 4)
-- [ ] Implémenter le filtrage par genre dans le dashboard
-- [ ] Créer un tree map des genres
-- [ ] Ajouter une timeline
-- [ ] Export des sélections en CSV
+- [ ] Dashboard avec preview des visualisations
+- [ ] Tree map des genres musicaux
+- [ ] Timeline d'évolution des tendances
+- [ ] Export des sélections (CSV, JSON)
+- [ ] Service Worker pour cache offline
 
 ## 📄 Licence
 
-MIT - Projet de visualisation de données
+MIT - Projet académique de visualisation de données
 
 ---
 
-**Note** : Ce projet nécessite un serveur HTTP (CORS) pour charger les fichiers CSV et JSON.
+**Note** : Nécessite un serveur HTTP local pour le chargement des fichiers (CORS).

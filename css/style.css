@@ -352,7 +352,7 @@ body {
    ============================================================================ */
 #scatter-container {
   background: var(--bg-light);
-  padding: 24px;
+  padding: 12px;
   border-radius: var(--radius-md);
   box-shadow: var(--shadow-2);
   position: relative;
@@ -360,7 +360,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 600px;
+  min-height: 700px;
 }
 
 #scatter-viz {
@@ -480,6 +480,19 @@ body {
 /* Panel de stats du brush */
 .brush-stats-panel {
     font-family: inherit !important;
+}
+
+/* Backdrop pour le panneau de détails */
+.details-backdrop {
+    font-family: inherit !important;
+    transition: opacity 0.3s ease;
+    cursor: pointer;
+}
+
+/* Panneau de détails */
+.details-panel {
+    font-family: inherit !important;
+    transition: opacity 0.3s ease;
 }
 
 /* SVG Text */

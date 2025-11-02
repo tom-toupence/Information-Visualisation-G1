@@ -1,31 +1,28 @@
 /**
- * @typedef {import('../types/index.d.ts').SpotifyTrack} SpotifyTrack
- * @typedef {import('../types/index.d.ts').GenreIndex} GenreIndex
- * @typedef {import('../types/index.d.ts').GenreTreeNode} GenreTreeNode
- * @typedef {import('../types/index.d.ts').SongInfo} SongInfo
+ * DataLoader - Gestion centralisée du chargement des données Spotify
+ * Pattern Singleton avec cache mémoire uniquement (dataset trop gros pour Storage)
+ * Les préférences utilisateur sont stockées dans LocalStorage
  */
-
-/**
- * DataLoader unifié - Classe singleton pour charger et gérer toutes les données Spotify
- * Combine les fonctionnalités des deux anciens DataLoader
- */
-export class DataLoader {
+class DataLoader {
     constructor() {
-        /** @type {Map<string, any>} */
+        // Cache mémoire pour les données
         this.cache = new Map();
-        
-        /** @type {string} */
+        // Chemin du CSV (dans assets/)
+        this.dataPath = 'assets/spotify_data.csv';
+        // Chemin du JSON des genres (dans assets/)
+        this.genresTreePath = 'assets/music_genres_tree.json';
+        // Chemin de l'index enrichi avec chansons
         this.genreTreeFileName = 'assets/indexByGenreSongs.json';
-        
-        // Préchargement des données Spotify
-        this.loadSpotifyData().then(() => {
-            console.log('📦 DataLoader initialisé avec préchargement des données');
-        });
+        // Clé pour les préférences utilisateur
+        this.prefsKey = 'spotimix_user_prefs';
+        // Flag pour éviter les chargements multiples
+        this.isLoading = false;
+        // Promise de chargement en cours
+        this.loadingPromise = null;
     }
 
     /**
      * Récupère l'instance singleton de DataLoader
-     * @returns {DataLoader} L'instance unique de DataLoader
      */
     static getInstance() {
         if (!DataLoader.instance) {
@@ -36,99 +33,47 @@ export class DataLoader {
 
     /**
      * Charge les données Spotify depuis le fichier CSV
-     * @param {string} csvPath - Chemin vers le fichier CSV (optionnel)
-     * @returns {Promise<SpotifyTrack[]>} Les données Spotify parsées
      */
-    async loadSpotifyData(csvPath = 'assets/spotify_data.csv') {
+    async loadSpotifyData() {
         const cacheKey = 'spotify_data';
 
         // Vérifier le cache
         if (this.cache.has(cacheKey)) {
-            console.log('📦 Données Spotify chargées depuis le cache');
+            console.log('Using memory cache');
             return this.cache.get(cacheKey);
         }
 
-        try {
-            console.log('🔄 Chargement des données Spotify...');
-            const rawData = await d3.csv(csvPath);
-            const spotifyTracks = this.parseSpotifyData(rawData);
-            
-            // Mettre en cache
-            this.cache.set(cacheKey, spotifyTracks);
-            console.log(`✅ ${spotifyTracks.length} pistes Spotify chargées avec succès`);
-            
-            return spotifyTracks;
-        } catch (error) {
-            console.error('❌ Erreur lors du chargement des données Spotify:', error);
-            console.warn('🔄 Utilisation des données par défaut');
-            return this.getDefaultData();
-        }
-    }
-
-    /**
-     * Charge l'arbre de genres depuis le fichier JSON basique
-     * @returns {Promise<GenreTreeNode>} L'arbre de genres
-     * @throws {Error} Si le format des données est invalide
-     */
-    async loadGenreTree() {
-        const cacheKey = 'genre_tree';
-
-        if (this.cache.has(cacheKey)) {
-            console.log('📦 Arbre de genres chargé depuis le cache');
-            return this.cache.get(cacheKey);
+        // 2. Si un chargement est déjà en cours, attendre sa fin
+        if (this.isLoading && this.loadingPromise) {
+            console.log('Waiting for ongoing load...');
+            return this.loadingPromise;
         }
 
-        try {
-            console.log('🔄 Chargement de l\'arbre de genres...');
-            const tree = await d3.json('assets/music_genres_tree.json');
-
-            if (!tree || typeof tree !== 'object' || typeof tree.name !== 'string') {
-                throw new Error('Format invalide pour l\'arbre de genres');
+        // 3. Démarrer le chargement du CSV
+        this.isLoading = true;
+        console.log('Loading Spotify data from CSV (this may take a few seconds)...');
+        
+        this.loadingPromise = (async () => {
+            try {
+                const rawData = await d3.csv(this.dataPath);
+                const spotifyTracks = this.parseSpotifyData(rawData);
+                
+                // Sauvegarder UNIQUEMENT dans le cache mémoire
+                this.cache.set(cacheKey, spotifyTracks);
+                
+                console.log(`Loaded ${spotifyTracks.length} tracks (${(JSON.stringify(spotifyTracks).length / 1024 / 1024).toFixed(2)} MB in memory)`);
+                return spotifyTracks;
+            } finally {
+                this.isLoading = false;
+                this.loadingPromise = null;
             }
+        })();
 
-            this.cache.set(cacheKey, tree);
-            console.log('✅ Arbre de genres chargé avec succès');
-            return tree;
-        } catch (error) {
-            console.error('❌ Erreur lors du chargement de l\'arbre de genres:', error);
-            throw error;
-        }
+        return this.loadingPromise;
     }
 
     /**
-     * Charge l'arbre de genres enrichi avec les chansons et métriques
-     * @returns {Promise<GenreTreeNode>} L'arbre de genres enrichi
-     * @throws {Error} Si le format des données est invalide
-     */
-    async loadGenreTreeWithSongs() {
-        const cacheKey = 'genre_tree_with_songs';
-
-        if (this.cache.has(cacheKey)) {
-            console.log('📦 Arbre enrichi chargé depuis le cache');
-            return this.cache.get(cacheKey);
-        }
-
-        try {
-            console.log('🔄 Chargement de l\'arbre de genres enrichi...');
-            const enriched = await d3.json(this.genreTreeFileName);
-
-            if (!this.validateEnrichedTree(enriched)) {
-                throw new Error('Format invalide pour l\'arbre de genres enrichi');
-            }
-
-            this.cache.set(cacheKey, enriched);
-            console.log('✅ Arbre de genres enrichi chargé avec succès');
-            return enriched;
-        } catch (error) {
-            console.error('❌ Erreur lors du chargement de l\'arbre enrichi:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Parse les données CSV brutes vers le format SpotifyTrack
-     * @param {any[]} rawData - Données CSV brutes
-     * @returns {SpotifyTrack[]} Données parsées
+     * Parse les données brutes Spotify en objets typés
      */
     parseSpotifyData(rawData) {
         return rawData.map((row, index) => {
@@ -136,7 +81,7 @@ export class DataLoader {
                 return {
                     artist_name: row.artist_name || '',
                     track_name: row.track_name || '',
-                    track_id: row.track_id || '',
+                    track_id: row.track_id || `track_${index}`,
                     popularity: this.parseFloat(row.popularity, 0),
                     danceability: this.parseFloat(row.danceability, 0),
                     energy: this.parseFloat(row.energy, 0),
@@ -151,11 +96,13 @@ export class DataLoader {
                     tempo: this.parseFloat(row.tempo, 120),
                     duration_ms: this.parseInt(row.duration_ms, 0),
                     time_signature: this.parseInt(row.time_signature, 4),
-                    track_genre: row.track_genre || 'unknown',
+                    // Supporter les deux noms de colonnes pour le genre
+                    genre: row.genre || row.track_genre || 'unknown',
+                    track_genre: row.track_genre || row.genre || 'unknown',
                     year: this.parseInt(row.year, null)
                 };
             } catch (error) {
-                console.warn(`⚠️ Erreur parsing ligne ${index}:`, error);
+                console.warn(`Error parsing row ${index}:`, error);
                 return null;
             }
         }).filter(track => track !== null);
@@ -209,6 +156,172 @@ export class DataLoader {
     }
 
     /**
+     * Récupère les propriétés d'un titre par son ID
+     */
+    async getTrackById(id) {
+        try {
+            const spotifyData = await this.loadSpotifyData();
+            const foundTrack = spotifyData.find(track => track.track_id === id);
+            return foundTrack || null;
+        } catch (error) {
+            console.error(`Error finding track with ID ${id}:`, error);
+            return null;
+        }
+    }
+
+    /**
+     * Charge l'arbre des genres depuis le JSON
+     */
+    async loadGenresTree() {
+        const cacheKey = 'genres_tree';
+
+        // Vérifier le cache mémoire
+        if (this.cache.has(cacheKey)) {
+            console.log('📦 Arbre de genres chargé depuis le cache');
+            return this.cache.get(cacheKey);
+        }
+
+        try {
+            console.log('🔄 Chargement de l\'arbre de genres...');
+            const response = await fetch(this.genresTreePath);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            const genresTree = await response.json();
+            
+            if (!genresTree || typeof genresTree !== 'object' || typeof genresTree.name !== 'string') {
+                throw new Error('Format invalide pour l\'arbre de genres');
+            }
+
+            this.cache.set(cacheKey, genresTree);
+            console.log('✅ Arbre de genres chargé avec succès');
+            return genresTree;
+        } catch (error) {
+            console.error('❌ Erreur lors du chargement de l\'arbre de genres:', error);
+            return { name: 'Music Genres', children: [] };
+        }
+    }
+
+    /**
+     * Extrait tous les genres de l'arbre hiérarchique
+     * @param {Object} node - Nœud de l'arbre
+     * @param {string[]} genres - Tableau pour accumuler les genres
+     * @returns {string[]} Liste de tous les genres
+     */
+    extractGenresFromTree(node, genres = []) {
+        // Si le nœud a un nom et pas d'enfants, c'est un genre final
+        if (node.name && !node.children) {
+            genres.push(node.name);
+        }
+        
+        // Parcourir récursivement les enfants
+        if (node.children) {
+            node.children.forEach(child => {
+                this.extractGenresFromTree(child, genres);
+            });
+        }
+        
+        return genres;
+    }
+
+    /**
+     * Récupère la liste des genres disponibles depuis music_genres_tree.json
+     */
+    async getAvailableGenres() {
+        const genresTree = await this.loadGenresTree();
+        const allGenres = this.extractGenresFromTree(genresTree);
+        return allGenres.sort();
+    }
+
+    /**
+     * Charge l'arbre de genres enrichi avec les chansons et métriques
+     */
+    async loadGenreTreeWithSongs() {
+        const cacheKey = 'genre_tree_with_songs';
+
+        if (this.cache.has(cacheKey)) {
+            console.log('📦 Arbre enrichi chargé depuis le cache');
+            return this.cache.get(cacheKey);
+        }
+
+        try {
+            console.log('🔄 Chargement de l\'arbre de genres enrichi...');
+            const response = await fetch(this.genreTreeFileName);
+            const enriched = await response.json();
+
+            this.cache.set(cacheKey, enriched);
+            console.log('✅ Arbre de genres enrichi chargé avec succès');
+            return enriched;
+        } catch (error) {
+            console.error('❌ Erreur lors du chargement de l\'arbre enrichi:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Récupère les statistiques des données
+     */
+    async getStats() {
+        const spotifyData = await this.loadSpotifyData();
+        const genres = new Set(spotifyData.map(track => track.genre || track.track_genre));
+        const years = spotifyData.map(track => track.year).filter(y => y > 0);
+        
+        return {
+            totalTracks: spotifyData.length,
+            genreCount: genres.size,
+            yearRange: {
+                min: Math.min(...years),
+                max: Math.max(...years)
+            }
+        };
+    }
+
+    /**
+     * Sauvegarde les préférences utilisateur (genre, année)
+     * @param {Object} prefs - Les préférences à sauvegarder
+     */
+    saveUserPreferences(prefs) {
+        try {
+            const current = this.getUserPreferences();
+            const updated = { ...current, ...prefs };
+            localStorage.setItem(this.prefsKey, JSON.stringify(updated));
+            console.log('User preferences saved:', updated);
+        } catch (error) {
+            console.warn('Error saving preferences:', error);
+        }
+    }
+
+    /**
+     * Récupère les préférences utilisateur
+     * @returns {Object} Les préférences (genre, year, etc.)
+     */
+    getUserPreferences() {
+        try {
+            const stored = localStorage.getItem(this.prefsKey);
+            if (!stored) {
+                return {
+                    year: 2023,
+                    genre: '',
+                    topN: 1000
+                };
+            }
+            return JSON.parse(stored);
+        } catch (error) {
+            console.warn('Error loading preferences:', error);
+            return {
+                year: 2023,
+                genre: '',
+                topN: 1000
+            };
+        }
+    }
+
+    /**
+     * Vide le cache mémoire
+     */
+    /**
      * Récupère tous les genres uniques
      * @returns {Promise<string[]>} Liste des genres
      */
@@ -236,8 +349,6 @@ export class DataLoader {
 
     /**
      * Calcule récursivement les statistiques de l'arbre
-     * @param {GenreTreeNode} node - Nœud de l'arbre
-     * @returns {{totalTracks: number, totalGenres: number, avgTracksPerGenre: number}}
      */
     calculateTreeStats(node) {
         let totalTracks = 0;
@@ -269,7 +380,6 @@ export class DataLoader {
 
     /**
      * Données par défaut en cas d'erreur de chargement
-     * @returns {SpotifyTrack[]} Données de test
      */
     getDefaultData() {
         return [
@@ -341,18 +451,50 @@ export class DataLoader {
     }
 
     /**
-     * Vide le cache
+     * Vide le cache mémoire
      */
     clearCache() {
         this.cache.clear();
-        console.log('🗑️ Cache vidé');
+        this.isLoading = false;
+        this.loadingPromise = null;
+        console.log('🗑️ Cache mémoire vidé');
+    }
+
+    /**
+     * Vide les préférences utilisateur
+     */
+    clearPreferences() {
+        localStorage.removeItem(this.prefsKey);
+        console.log('🗑️ Préférences utilisateur effacées');
+    }
+
+    /**
+     * Affiche les statistiques du cache (mémoire uniquement)
+     */
+    getCacheInfo() {
+        const hasData = this.cache.has('spotify_data');
+        const dataSize = hasData ? this.cache.get('spotify_data').length : 0;
+        
+        return {
+            hasMemoryCache: hasData,
+            trackCount: dataSize,
+            isLoading: this.isLoading,
+            preferences: this.getUserPreferences()
+        };
     }
 
     /**
      * Récupère la taille du cache
-     * @returns {number} Nombre d'éléments en cache
      */
     getCacheSize() {
         return this.cache.size;
     }
+}
+
+// Export pour les modules ES6 ET exposition globale
+export { DataLoader };
+
+// Créer et exposer l'instance singleton globalement
+if (typeof window !== 'undefined') {
+    window.dataLoader = DataLoader.getInstance();
 }

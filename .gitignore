@@ -1,6 +1,9 @@
 data/spotify_data.csv
 node_modules/
 package-lock.json
+
+# Large data files
+assets
 public/spotify_data.csv
 public/indexByGenreSongs.json
 dist

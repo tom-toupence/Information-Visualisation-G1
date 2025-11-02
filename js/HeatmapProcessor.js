@@ -186,6 +186,3 @@ class HeatmapProcessor {
             .sort((a, b) => a - b);
     }
 }
-
-// Export ES6
-export { HeatmapProcessor };

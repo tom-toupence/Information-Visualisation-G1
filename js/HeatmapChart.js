@@ -1,8 +1,7 @@
-import { HeatmapProcessor } from './HeatmapProcessor.js';
-
 /**
  * HeatmapChart - Visualise la heatmap avec D3.js
  * Gère le rendu, les axes, la légende, les tooltips et la modale
+ * Dépend de HeatmapProcessor (chargé avant)
  */
 class HeatmapChart {
     constructor(containerId, options = {}) {
@@ -522,6 +521,3 @@ class HeatmapChart {
         return years;
     }
 }
-
-// Export ES6
-export { HeatmapChart };

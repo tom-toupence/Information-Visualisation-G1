@@ -216,6 +216,10 @@ Les DJs peuvent ainsi visualiser, comparer et sélectionner des morceaux de mani
 
 ---
 
+## Run
+- Télécharger https://mega.nz/folder/jYFFSLIL#UU76WlkeE22E33YD0S6tEw et mettre a la racine
+- Lancer un serveur sur index.html
+
 ## Team
 
 **Groupe 1 – Spotify Visualization**  

@@ -27,19 +27,22 @@ document.addEventListener('DOMContentLoaded', async () => {
             const response = await fetch('assets/music_genres_tree.json');
             const genreTree = await response.json();
             
-            // Extraire tous les genres de l'arbre
             const genres = [];
-            function extractGenres(node) {
-                if (node.name) genres.push(node.name);
-                if (node.children) {
-                    node.children.forEach(child => extractGenres(child));
+            function extractLeafGenres(node) {
+                // Si le nœud n'a pas d'enfants, c'est un genre terminal (feuille)
+                if (!node.children || node.children.length === 0) {
+                    if (node.name) {
+                        genres.push(node.name);
+                    }
+                } else {
+                    // Sinon, parcourir récursivement les enfants
+                    node.children.forEach(child => extractLeafGenres(child));
                 }
             }
-            extractGenres(genreTree);
+            extractLeafGenres(genreTree);
             
             // Trier et dédupliquer
             const uniqueGenres = [...new Set(genres)].sort();
-            console.log(`${uniqueGenres.length} genres chargés depuis music_genres_tree.json`);
             
             // Vider le sélecteur et ajouter l'option "Tous"
             genreSelect.innerHTML = '<option value="">Tous les genres</option>';
@@ -50,6 +53,31 @@ document.addEventListener('DOMContentLoaded', async () => {
                 option.value = genre;
                 option.textContent = genre.charAt(0).toUpperCase() + genre.slice(1);
                 genreSelect.appendChild(option);
+            });
+
+            // Restaurer la préférence de genre depuis LocalStorage
+            const PREFS_KEY = 'spotimix_user_prefs';
+            try {
+                const prefs = JSON.parse(localStorage.getItem(PREFS_KEY) || '{}');
+                if (prefs.genre) {
+                    genreSelect.value = prefs.genre;
+                    console.log('Genre restauré depuis préférences:', prefs.genre);
+                }
+            } catch (error) {
+                console.warn('Erreur restauration préférences:', error);
+            }
+
+            // Sauvegarder le genre quand il change
+            genreSelect.addEventListener('change', (e) => {
+                const selectedGenre = e.target.value;
+                try {
+                    const prefs = JSON.parse(localStorage.getItem(PREFS_KEY) || '{}');
+                    prefs.genre = selectedGenre;
+                    localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
+                    console.log('💾 Genre sauvegardé:', selectedGenre || 'Tous les genres');
+                } catch (error) {
+                    console.warn('Erreur sauvegarde préférences:', error);
+                }
             });
         } catch (error) {
             console.error('Erreur chargement genres:', error);

@@ -82,39 +82,8 @@
   </main>
 
   <!-- Dashboard sans DataLoader pour éviter le préchargement du CSV -->
+  <!-- La gestion du sélecteur de genre et des préférences est dans dashboard.js -->
   <script src="js/dashboard.js"></script>
-  
-  <script>
-    // Gestion du sélecteur de genre dans le dashboard (utilise LocalStorage directement)
-    document.addEventListener('DOMContentLoaded', () => {
-      const genreSelect = document.getElementById('genre-select');
-      const PREFS_KEY = 'spotimix_user_prefs';
-      
-      // Charger la préférence de genre sauvegardée depuis LocalStorage
-      try {
-        const prefs = JSON.parse(localStorage.getItem(PREFS_KEY) || '{}');
-        if (prefs.genre) {
-          genreSelect.value = prefs.genre;
-          console.log('Dashboard: Genre chargé depuis préférences:', prefs.genre);
-        }
-      } catch (error) {
-        console.warn('Erreur chargement préférences:', error);
-      }
-      
-      // Sauvegarder le genre quand il change
-      genreSelect.addEventListener('change', (e) => {
-        const selectedGenre = e.target.value;
-        try {
-          const prefs = JSON.parse(localStorage.getItem(PREFS_KEY) || '{}');
-          prefs.genre = selectedGenre;
-          localStorage.setItem(PREFS_KEY, JSON.stringify(prefs));
-          console.log('Dashboard: Genre sauvegardé:', selectedGenre || 'Tous les genres');
-        } catch (error) {
-          console.warn('Erreur sauvegarde préférences:', error);
-        }
-      });
-    });
-  </script>
 </body>
 
 </html>

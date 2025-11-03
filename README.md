@@ -7,6 +7,8 @@ L’objectif est de concevoir plusieurs visualisations interactives à partir du
 
 Ce projet a pour utilisateurs cibles les **DJs et mixeurs**, chaque visualisation correspond à un **cas d’usage réel**, basé sur leurs besoins.
 
+[Support de présentation](./images/Spotimix.pdf)
+
 ---
 
 ## Dataset
